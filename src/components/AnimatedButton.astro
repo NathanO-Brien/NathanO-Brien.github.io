@@ -3,13 +3,14 @@ interface Props {
 	href: string;
 	variant?: "solid" | "outline";
 	external?: boolean;
+	class?: string;
 }
 
-const { href, variant = "solid", external = false } = Astro.props;
+const { href, variant = "solid", external = false, class: className } = Astro.props;
 ---
 
 <a
-	class={`btn btn--${variant}`}
+	class:list={["btn", `btn--${variant}`, className]}
 	href={href}
 	target={external ? "_blank" : undefined}
 	rel={external ? "noopener noreferrer" : undefined}

@@ -30,15 +30,15 @@ const {
 	</head>
 	<body class:list={[fitToViewport && "fit-to-viewport"]}>
 		{
-			/* Nav's 72rem is derived from main's 82rem max-width, hero's 69rem
-			   width, and the shared 1.5rem (--space-5) padding-inline, so that
-			   nav__home lines up with the hero text's left edge. Recompute if
-			   any of those three values change. */
+			/* Nav's 71rem is derived from main's 82rem max-width, hero's 69rem
+			   width, and the shared 1rem --gutter, so that nav__home lines up
+			   with the hero text's left edge (Y = max-width - 13 + 2*gutter).
+			   Recompute if max-width, the hero's width, or --gutter change. */
 		}
 		<header>
-			<Nav maxWidth={wide ? "72rem" : undefined} />
+			<Nav navStyle={wide ? "--max-width: 71rem; --gutter: 1rem;" : undefined} />
 		</header>
-		<main class="container" style={wide ? "--max-width: 82rem" : undefined}>
+		<main class="container" style={wide ? "--max-width: 82rem; --gutter: 1rem;" : undefined}>
 			<slot />
 		</main>
 	</body>
@@ -65,7 +65,7 @@ const {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding-block: var(--space-5);
+		padding-block: var(--space-4);
 		min-height: 0;
 	}
 </style>

@@ -8,7 +8,7 @@ import AnimatedButton from "../components/AnimatedButton.astro";
 	<section class="hero">
 		<div class="hero__text">
 			<p class="eyebrow">About</p>
-			<h1>I am helping to build the future of American commercial space.</h1>
+			<h1>I am helping to build the <span class="highlight">future</span> of American commercial space.</h1>
 			<p class="hero__paragraph">
 				I'm a master's student in aerospace engineering at the{" "}
 				<a href="https://www.gatech.edu/" target="_blank" rel="noopener noreferrer">Georgia Institute of Technology</a>
@@ -32,7 +32,7 @@ import AnimatedButton from "../components/AnimatedButton.astro";
 			</p>
 
 			<div class="hero__actions">
-				<AnimatedButton href="/career/">Career progression</AnimatedButton>
+				<AnimatedButton href="/career/" class="tie-accent">Career progression</AnimatedButton>
 				<AnimatedButton href="/projects/" variant="outline">Projects</AnimatedButton>
 			</div>
 
@@ -67,7 +67,7 @@ import AnimatedButton from "../components/AnimatedButton.astro";
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-3);
+		gap: var(--space-4);
 	}
 
 	.hero__text h1 {
@@ -75,6 +75,28 @@ import AnimatedButton from "../components/AnimatedButton.astro";
 		line-height: 1.15;
 		letter-spacing: -0.01em;
 		max-width: 44rem;
+	}
+
+	/* Tie-matched accent, sampled from the headshot: rgb(104, 120, 154).
+	   Keep .highlight's underline and .tie-accent's --color-accent override
+	   in sync if the photo ever changes. */
+	.highlight {
+		position: relative;
+		white-space: nowrap;
+	}
+
+	.highlight::after {
+		content: "";
+		position: absolute;
+		left: -3%;
+		right: -3%;
+		bottom: -0.1em;
+		height: 0.32em;
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 20' preserveAspectRatio='none'%3E%3Cpath d='M2,12 C22,2 42,22 62,12 C82,2 102,22 122,12 C142,2 162,22 182,12 C202,2 222,22 238,12' stroke='%2368789A' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		background-size: 100% 100%;
+		transform: rotate(-1deg);
+		z-index: -1;
 	}
 
 	.hero__paragraph {
@@ -100,7 +122,12 @@ import AnimatedButton from "../components/AnimatedButton.astro";
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-3);
-		margin-top: var(--space-2);
+		margin-top: var(--space-3);
+	}
+
+	:global(.tie-accent) {
+		--color-accent: #68789a;
+		--color-accent-ink: #ffffff;
 	}
 
 	.hero__social {
@@ -122,7 +149,6 @@ import AnimatedButton from "../components/AnimatedButton.astro";
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
-		filter: grayscale(1);
 	}
 
 	@media (max-width: 860px) {
@@ -136,11 +162,16 @@ import AnimatedButton from "../components/AnimatedButton.astro";
 
 		.hero__text {
 			width: 100%;
+			gap: var(--space-3);
 		}
 
 		.hero__text h1,
 		.hero__paragraph {
 			max-width: 100%;
+		}
+
+		.hero__actions {
+			margin-top: var(--space-2);
 		}
 
 		.hero__photo {
