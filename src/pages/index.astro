@@ -50,11 +50,16 @@ import AnimatedButton from "../components/AnimatedButton.astro";
 </Layout>
 
 <style>
+	/* Width is the sum of its children: hero__paragraph max-width (48rem) +
+	   gap (--space-7, 3rem) + hero__photo (18rem) = 69rem. Keep in sync with
+	   Nav's "wide" max-width (Layout.astro) so both stay left-aligned. */
 	.hero {
-		display: inline-flex;
+		display: flex;
 		align-items: center;
 		gap: var(--space-7);
+		width: 69rem;
 		max-width: 100%;
+		margin-inline: auto;
 	}
 
 	.hero__text {

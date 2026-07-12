@@ -1,4 +1,11 @@
 ---
+interface Props {
+	/** Overrides the nav's max-width (e.g. to match a wide page's content width). */
+	maxWidth?: string;
+}
+
+const { maxWidth }: Props = Astro.props;
+
 const links = [
 	{ href: "/", label: "about" },
 	{ href: "/career/", label: "career" },
@@ -10,7 +17,7 @@ const isActive = (href: string) =>
 	href === "/" ? path === "/" : path.startsWith(href);
 ---
 
-<nav class="nav">
+<nav class="nav" style={maxWidth ? `--max-width: ${maxWidth}` : undefined}>
 	<a class="nav__home" href="/">Nathan O'Brien</a>
 	<ul class="nav__links">
 		{

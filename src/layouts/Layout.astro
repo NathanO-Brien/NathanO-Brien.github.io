@@ -29,8 +29,14 @@ const {
 		<title>{title} · Nathan O'Brien</title>
 	</head>
 	<body class:list={[fitToViewport && "fit-to-viewport"]}>
+		{
+			/* Nav's 72rem is derived from main's 82rem max-width, hero's 69rem
+			   width, and the shared 1.5rem (--space-5) padding-inline, so that
+			   nav__home lines up with the hero text's left edge. Recompute if
+			   any of those three values change. */
+		}
 		<header>
-			<Nav />
+			<Nav maxWidth={wide ? "72rem" : undefined} />
 		</header>
 		<main class="container" style={wide ? "--max-width: 82rem" : undefined}>
 			<slot />
