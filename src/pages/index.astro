@@ -8,14 +8,27 @@ import AnimatedButton from "../components/AnimatedButton.astro";
 	<section class="hero">
 		<div class="hero__text">
 			<p class="eyebrow">Nathan O'Brien</p>
-			<h1>[Header: one first-person sentence stating your profession]</h1>
+			<h1>I am helping to build the future of American commercial space.</h1>
 			<p class="hero__paragraph">
-				[Paragraph 1: a few sentences introducing yourself — background, what you're
-				currently doing, first person.]
+				I'm a master's student in aerospace engineering at the{" "}
+				<a href="https://www.gatech.edu/" target="_blank" rel="noopener noreferrer">Georgia Institute of Technology</a>
+				{" "}and a consultant for the{" "}
+				<a href="https://www.csis.org/" target="_blank" rel="noopener noreferrer">Center for Strategic and International Studies</a>.
+				My focus lies in GNC engineering and space policy.
 			</p>
 			<p class="hero__paragraph">
-				[Paragraph 2: a few more sentences — interests, what you're looking for, first
-				person.]
+				As a member of the{" "}
+				<a href="https://espl.ae.gatech.edu/" target="_blank" rel="noopener noreferrer">Engineering Space Policy Laboratory</a>,
+				I specialize in the space security field. I use my technical background to develop
+				optimized constellation models for all types of space-based interceptor proposals.
+				My academic work is funded through a philanthropic grant issued by{" "}
+				<a href="https://www.longview.org/" target="_blank" rel="noopener noreferrer">Longview Philanthropy</a>
+				{" "}and{" "}
+				<a href="https://www.founderspledge.com/" target="_blank" rel="noopener noreferrer">Founder's Pledge</a>.
+				My work has also been recognized by the{" "}
+				<a href="https://nssaspace.org/" target="_blank" rel="noopener noreferrer">National Security Space Association</a>
+				{" "}via the{" "}
+				<a href="https://nssaspace.org/rgi-scholarship/" target="_blank" rel="noopener noreferrer">RGi Scholarship Award</a>.
 			</p>
 
 			<div class="hero__actions">
@@ -56,12 +69,26 @@ import AnimatedButton from "../components/AnimatedButton.astro";
 		font-size: var(--step-3);
 		line-height: 1.15;
 		letter-spacing: -0.01em;
-		max-width: 32rem;
+		max-width: 34rem;
 	}
 
 	.hero__paragraph {
-		max-width: 34rem;
+		max-width: 38rem;
 		color: var(--color-muted);
+	}
+
+	.hero__paragraph a {
+		color: var(--color-ink);
+		text-decoration: underline;
+		text-decoration-color: var(--color-border);
+		text-underline-offset: 0.15em;
+		transition: text-decoration-color 160ms var(--ease-snap), color 160ms var(--ease-snap);
+	}
+
+	.hero__paragraph a:hover,
+	.hero__paragraph a:focus-visible {
+		color: var(--color-accent);
+		text-decoration-color: var(--color-accent);
 	}
 
 	.hero__actions {
