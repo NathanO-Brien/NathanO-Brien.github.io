@@ -7,10 +7,16 @@ interface Props {
 	description?: string;
 	/** When true, the page is expected to fit one viewport with no scroll (homepage). */
 	fitToViewport?: boolean;
+	/** When true, main uses a wider max-width (for multi-column layouts like the hero). */
+	wide?: boolean;
 }
 
-const { title, description = "Nathan O'Brien — aerospace engineer.", fitToViewport = false } =
-	Astro.props;
+const {
+	title,
+	description = "Nathan O'Brien — aerospace engineer.",
+	fitToViewport = false,
+	wide = false,
+} = Astro.props;
 ---
 
 <html lang="en">
@@ -26,7 +32,7 @@ const { title, description = "Nathan O'Brien — aerospace engineer.", fitToView
 		<header>
 			<Nav />
 		</header>
-		<main class="container">
+		<main class="container" style={wide ? "--max-width: 64rem" : undefined}>
 			<slot />
 		</main>
 	</body>
