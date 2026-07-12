@@ -32,10 +32,7 @@ const {
 		<header>
 			<Nav />
 		</header>
-		<main
-			class="container"
-			style={wide ? "--max-width: 70rem; margin-left: var(--space-6); margin-right: auto;" : undefined}
-		>
+		<main class="container" style={wide ? "--max-width: 82rem" : undefined}>
 			<slot />
 		</main>
 	</body>
@@ -61,6 +58,7 @@ const {
 		flex: 1;
 		display: flex;
 		align-items: center;
+		justify-content: center;
 		padding-block: var(--space-5);
 		min-height: 0;
 	}
