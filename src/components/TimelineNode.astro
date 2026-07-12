@@ -1,0 +1,90 @@
+---
+interface Props {
+	category: "education" | "employment" | "award";
+	dateRange: string;
+}
+
+const { category, dateRange } = Astro.props;
+---
+
+<div class="node">
+	<div class="node__line" aria-hidden="true"></div>
+	<div class="node__marker">
+		<span class="node__date">{dateRange}</span>
+		<span class={`node__bubble node__bubble--${category}`} aria-hidden="true"></span>
+	</div>
+</div>
+
+<style>
+	.node {
+		position: relative;
+		height: 100%;
+		display: flex;
+	}
+
+	.node__line {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		right: 0.5rem;
+		width: 2px;
+		/* --color-border is nearly invisible against the dark-mode
+		   background; --color-muted has enough contrast in both modes. */
+		background: var(--color-muted);
+		opacity: 0.4;
+		transform: translateX(50%);
+	}
+
+	.node__marker {
+		position: relative;
+		z-index: 1;
+		margin-left: auto;
+		margin-top: var(--space-5);
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.node__date {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+		white-space: nowrap;
+	}
+
+	.node__bubble {
+		width: 1rem;
+		height: 1rem;
+		flex-shrink: 0;
+		border-radius: 999px;
+		box-shadow: 0 0 0 4px var(--color-bg);
+	}
+
+	.node__bubble--employment {
+		background: var(--color-timeline-employment);
+	}
+
+	.node__bubble--education {
+		background: var(--color-timeline-education);
+	}
+
+	.node__bubble--award {
+		background: var(--color-timeline-award);
+	}
+
+	@media (max-width: 860px) {
+		.node {
+			height: auto;
+			padding-bottom: var(--space-3);
+		}
+
+		.node__line {
+			display: none;
+		}
+
+		.node__marker {
+			margin-left: 0;
+			margin-top: 0;
+		}
+	}
+</style>

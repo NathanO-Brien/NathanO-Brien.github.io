@@ -2,6 +2,8 @@
 import { getCollection } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
 import EntryCard from "../../components/EntryCard.astro";
+import TimelineNode from "../../components/TimelineNode.astro";
+import TimelineMedia from "../../components/TimelineMedia.astro";
 
 const entries = (await getCollection("career")).sort((a, b) => {
 	const dateA = a.data.endDate ?? "9999-99";
@@ -10,31 +12,48 @@ const entries = (await getCollection("career")).sort((a, b) => {
 });
 
 function formatRange(start: string, end?: string) {
+	if (end && end === start) return start; // single-date events (awards/conferences) show one date, not a redundant range
 	return `${start} — ${end ?? "present"}`;
 }
+
+const categoryLabels: Record<string, string> = {
+	employment: "Employment",
+	education: "Education",
+	award: "Award / Event",
+};
 ---
 
-<Layout title="Career">
+<Layout title="Career" wide>
 	<header class="page-header">
 		<p class="eyebrow">Career progression</p>
 		<h1>Where the path has gone, and where it's headed.</h1>
 	</header>
 
-	<div class="entries">
-		{
-			entries.map((entry) => (
-				<EntryCard
-					id={entry.id}
-					eyebrow={formatRange(entry.data.startDate, entry.data.endDate)}
-					title={entry.data.title}
-					subtitle={[entry.data.organization, entry.data.location].filter(Boolean).join(" · ")}
-					summary={entry.data.summary}
-					tags={entry.data.tags}
-					links={entry.data.links}
-					pdf={entry.data.pdf}
-				/>
-			))
-		}
+	<div class="timeline-wrap">
+		<div class="timeline">
+			{
+				entries.map((entry) => (
+					<>
+						<TimelineNode
+							category={entry.data.category}
+							dateRange={formatRange(entry.data.startDate, entry.data.endDate)}
+						/>
+						<div class="timeline-card">
+							<EntryCard
+								id={entry.id}
+								eyebrow={categoryLabels[entry.data.category]}
+								title={entry.data.title}
+								subtitle={[entry.data.organization, entry.data.location].filter(Boolean).join(" · ")}
+								summary={entry.data.summary}
+								tags={entry.data.tags}
+								links={entry.data.links}
+							/>
+						</div>
+						<TimelineMedia id={entry.id} title={entry.data.title} pdf={entry.data.pdf} gallery={entry.data.gallery} />
+					</>
+				))
+			}
+		</div>
 	</div>
 </Layout>
 
@@ -49,9 +68,36 @@ function formatRange(start: string, end?: string) {
 		margin-top: var(--space-2);
 	}
 
-	.entries {
+	/* .timeline's grid-template-columns are all fixed/bounded (no 1fr), so
+	   as a flex child of .timeline-wrap it sizes to that fixed total width
+	   (9rem + 30rem + 18rem + 2 gaps) instead of stretching to fill the
+	   page -- that's what lets justify-content:center actually center it,
+	   rather than centering an item that's already full-width. */
+	.timeline-wrap {
 		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
+		justify-content: center;
+	}
+
+	.timeline {
+		display: grid;
+		grid-template-columns: 9rem minmax(0, 30rem) minmax(0, 18rem);
+		column-gap: var(--space-6);
+		row-gap: 0;
+		align-items: stretch;
+	}
+
+	.timeline-card {
+		margin-bottom: var(--space-6);
+	}
+
+	@media (max-width: 860px) {
+		.timeline {
+			grid-template-columns: 1fr;
+			row-gap: var(--space-3);
+		}
+
+		.timeline-card {
+			margin-bottom: 0;
+		}
 	}
 </style>

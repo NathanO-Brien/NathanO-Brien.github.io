@@ -4,6 +4,7 @@ organization: "Georgia Institute of Technology"
 location: "Atlanta, GA"
 startDate: "2025-08"
 summary: "Pursuing a master's in aerospace engineering with a focus on guidance, navigation, and control (GNC). Side interests in space policy and small-business/entrepreneurship."
+category: "education"
 tags: ["GNC", "aerospace"]
 links: []
 order: 0

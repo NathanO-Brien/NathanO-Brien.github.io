@@ -7,6 +7,14 @@
 	--color-accent: #1f4fff;
 	--color-accent-ink: #ffffff;
 
+	/* Career timeline bubble colors, one per entry category. Employment
+	   reuses the site accent (already tracks the dark-mode override below
+	   via var()); education/award get their own tokens so they stay
+	   distinguishable and get their own dark-mode-friendly variants. */
+	--color-timeline-employment: var(--color-accent);
+	--color-timeline-education: #1f9d6d;
+	--color-timeline-award: #b8862c;
+
 	--font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 	--font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Consolas", monospace;
 
@@ -48,6 +56,8 @@
 		--color-border: #2a2c31;
 		--color-accent: #6d8dff;
 		--color-accent-ink: #0b0c0f;
+		--color-timeline-education: #3ddb96;
+		--color-timeline-award: #e3b04f;
 		--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
 		--shadow-md: 0 6px 24px rgba(0, 0, 0, 0.4);
 	}

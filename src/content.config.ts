@@ -15,9 +15,11 @@ const career = defineCollection({
 		startDate: z.string(),
 		endDate: z.string().optional(), // omit for "present"
 		summary: z.string(),
+		category: z.enum(["education", "employment", "award"]), // drives the timeline bubble color + card label
 		tags: z.array(z.string()).default([]),
 		links: z.array(linkSchema).default([]),
-		pdf: z.string().optional(), // path under /public to a doc, e.g. /docs/offer-letter.pdf
+		pdf: z.string().optional(), // path under /public to a doc, e.g. /docs/offer-letter.pdf -- rendered in the timeline's right-hand media column
+		gallery: z.array(z.string()).default([]), // paths under /public to images -- rendered as a photo gallery in the timeline's right-hand media column
 		order: z.number().default(0), // lower sorts first within a tie; entries are primarily sorted by date
 	}),
 });
