@@ -1,0 +1,51 @@
+---
+import { getCollection } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+import EntryCard from "../../components/EntryCard.astro";
+
+const entries = (await getCollection("projects")).sort(
+	(a, b) => b.data.date.localeCompare(a.data.date) || a.data.order - b.data.order
+);
+---
+
+<Layout title="Projects">
+	<header class="page-header">
+		<p class="eyebrow">Projects</p>
+		<h1>Things I've built and worked on.</h1>
+	</header>
+
+	<div class="entries">
+		{
+			entries.map((entry) => (
+				<EntryCard
+					id={entry.id}
+					eyebrow={`${entry.data.date} · ${entry.data.status}`}
+					title={entry.data.title}
+					subtitle={entry.data.role}
+					summary={entry.data.summary}
+					tags={entry.data.tags}
+					links={entry.data.links}
+					pdf={entry.data.pdf}
+				/>
+			))
+		}
+	</div>
+</Layout>
+
+<style>
+	.page-header {
+		max-width: 34rem;
+		margin-bottom: var(--space-6);
+	}
+
+	.page-header h1 {
+		font-size: var(--step-2);
+		margin-top: var(--space-2);
+	}
+
+	.entries {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+		gap: var(--space-4);
+	}
+</style>

@@ -1,0 +1,58 @@
+---
+import Nav from "../components/Nav.astro";
+import "../styles/global.css";
+
+interface Props {
+	title: string;
+	description?: string;
+	/** When true, the page is expected to fit one viewport with no scroll (homepage). */
+	fitToViewport?: boolean;
+}
+
+const { title, description = "Nathan O'Brien — aerospace engineer.", fitToViewport = false } =
+	Astro.props;
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content={description} />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title} · Nathan O'Brien</title>
+	</head>
+	<body class:list={[fitToViewport && "fit-to-viewport"]}>
+		<header>
+			<Nav />
+		</header>
+		<main class="container">
+			<slot />
+		</main>
+	</body>
+</html>
+
+<style>
+	header {
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	main {
+		padding-block: var(--space-7);
+	}
+
+	body.fit-to-viewport {
+		height: 100dvh;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	body.fit-to-viewport main {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		padding-block: var(--space-5);
+		min-height: 0;
+	}
+</style>

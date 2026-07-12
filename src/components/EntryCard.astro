@@ -1,0 +1,105 @@
+---
+import DocPreview from "./DocPreview.astro";
+
+interface Props {
+	id: string;
+	eyebrow: string;
+	title: string;
+	subtitle?: string;
+	summary: string;
+	tags?: string[];
+	links?: { label: string; url: string }[];
+	pdf?: string;
+}
+
+const { id, eyebrow, title, subtitle, summary, tags = [], links = [], pdf } = Astro.props;
+---
+
+<article class="card">
+	<p class="eyebrow">{eyebrow}</p>
+	<h3>{title}</h3>
+	{subtitle && <p class="card__subtitle">{subtitle}</p>}
+	<p class="card__summary">{summary}</p>
+
+	{
+		tags.length > 0 && (
+			<ul class="card__tags">
+				{tags.map((tag) => (
+					<li class="tag">{tag}</li>
+				))}
+			</ul>
+		)
+	}
+
+	{
+		(links.length > 0 || pdf) && (
+			<div class="card__actions">
+				{links.map((link) => (
+					<a class="card__link" href={link.url} target="_blank" rel="noopener noreferrer">
+						{link.label} ↗
+					</a>
+				))}
+				{pdf && <DocPreview id={id} href={pdf} label="Preview document" />}
+			</div>
+		)
+	}
+</article>
+
+<style>
+	.card {
+		padding: var(--space-5);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		background: var(--color-surface);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		transition: border-color 160ms var(--ease-snap), transform 160ms var(--ease-snap);
+	}
+
+	.card:hover {
+		border-color: var(--color-accent);
+	}
+
+	.card h3 {
+		font-size: var(--step-1);
+	}
+
+	.card__subtitle {
+		color: var(--color-muted);
+		font-size: var(--step--1);
+		font-family: var(--font-mono);
+	}
+
+	.card__summary {
+		color: var(--color-ink);
+	}
+
+	.card__tags {
+		list-style: none;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+		margin: 0;
+		padding: 0;
+	}
+
+	.card__actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-3);
+		align-items: center;
+		margin-top: var(--space-2);
+	}
+
+	.card__link {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		text-decoration: none;
+		color: var(--color-accent);
+	}
+
+	.card__link:hover {
+		text-decoration: underline;
+	}
+</style>

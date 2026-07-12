@@ -1,0 +1,57 @@
+---
+import { getCollection } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+import EntryCard from "../../components/EntryCard.astro";
+
+const entries = (await getCollection("career")).sort((a, b) => {
+	const dateA = a.data.endDate ?? "9999-99";
+	const dateB = b.data.endDate ?? "9999-99";
+	return dateB.localeCompare(dateA) || a.data.order - b.data.order;
+});
+
+function formatRange(start: string, end?: string) {
+	return `${start} — ${end ?? "present"}`;
+}
+---
+
+<Layout title="Career">
+	<header class="page-header">
+		<p class="eyebrow">Career progression</p>
+		<h1>Where the path has gone, and where it's headed.</h1>
+	</header>
+
+	<div class="entries">
+		{
+			entries.map((entry) => (
+				<EntryCard
+					id={entry.id}
+					eyebrow={formatRange(entry.data.startDate, entry.data.endDate)}
+					title={entry.data.title}
+					subtitle={[entry.data.organization, entry.data.location].filter(Boolean).join(" · ")}
+					summary={entry.data.summary}
+					tags={entry.data.tags}
+					links={entry.data.links}
+					pdf={entry.data.pdf}
+				/>
+			))
+		}
+	</div>
+</Layout>
+
+<style>
+	.page-header {
+		max-width: 34rem;
+		margin-bottom: var(--space-6);
+	}
+
+	.page-header h1 {
+		font-size: var(--step-2);
+		margin-top: var(--space-2);
+	}
+
+	.entries {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+</style>

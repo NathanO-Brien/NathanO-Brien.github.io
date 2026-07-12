@@ -1,0 +1,122 @@
+---
+interface Props {
+	href: string;
+	label: string;
+	/** Unique id suffix so multiple previews can live on one page. */
+	id: string;
+}
+
+const { href, label, id } = Astro.props;
+const dialogId = `doc-preview-${id}`;
+---
+
+<button type="button" class="doc-trigger" data-dialog={dialogId}>
+	<span class="doc-trigger__icon" aria-hidden="true">
+		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+			<path d="M6 2h9l5 5v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" />
+			<path d="M14 2v6h6" />
+		</svg>
+	</span>
+	<span>{label}</span>
+</button>
+
+<dialog id={dialogId} class="doc-modal">
+	<div class="doc-modal__bar">
+		<span>{label}</span>
+		<button type="button" class="doc-modal__close" data-close={dialogId} aria-label="Close preview">✕</button>
+	</div>
+	<iframe src={href} title={label} loading="lazy"></iframe>
+</dialog>
+
+<style>
+	.doc-trigger {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5em;
+		font: inherit;
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-ink);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: 0.5em 0.9em;
+		cursor: pointer;
+		transition: border-color 160ms var(--ease-snap), transform 160ms var(--ease-snap);
+	}
+
+	.doc-trigger:hover,
+	.doc-trigger:focus-visible {
+		border-color: var(--color-accent);
+		transform: translateY(-2px);
+	}
+
+	.doc-trigger__icon svg {
+		width: 1rem;
+		height: 1rem;
+	}
+
+	.doc-modal {
+		border: none;
+		border-radius: var(--radius-lg);
+		padding: 0;
+		width: min(90vw, 56rem);
+		height: min(85vh, 70rem);
+		box-shadow: var(--shadow-md);
+		background: var(--color-surface);
+		color: var(--color-ink);
+	}
+
+	.doc-modal::backdrop {
+		background: rgba(10, 10, 12, 0.55);
+	}
+
+	.doc-modal__bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: var(--space-3) var(--space-4);
+		border-bottom: 1px solid var(--color-border);
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+	}
+
+	.doc-modal__close {
+		border: none;
+		background: transparent;
+		color: var(--color-muted);
+		font-size: 1rem;
+		cursor: pointer;
+		line-height: 1;
+		padding: 0.25em;
+	}
+
+	.doc-modal__close:hover {
+		color: var(--color-ink);
+	}
+
+	.doc-modal iframe {
+		display: block;
+		width: 100%;
+		height: calc(100% - 2.75rem);
+		border: none;
+	}
+</style>
+
+<script>
+	function wireUpDocPreviews() {
+		document.querySelectorAll<HTMLButtonElement>("[data-dialog]").forEach((trigger) => {
+			const dialog = document.getElementById(trigger.dataset.dialog!) as HTMLDialogElement | null;
+			if (!dialog || trigger.dataset.wired) return;
+			trigger.dataset.wired = "true";
+			trigger.addEventListener("click", () => dialog.showModal());
+			dialog.querySelector("[data-close]")?.addEventListener("click", () => dialog.close());
+			dialog.addEventListener("click", (event) => {
+				if (event.target === dialog) dialog.close();
+			});
+		});
+	}
+
+	wireUpDocPreviews();
+	document.addEventListener("astro:page-load", wireUpDocPreviews);
+</script>

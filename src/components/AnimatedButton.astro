@@ -1,0 +1,76 @@
+---
+interface Props {
+	href: string;
+	variant?: "solid" | "outline";
+	external?: boolean;
+}
+
+const { href, variant = "solid", external = false } = Astro.props;
+---
+
+<a
+	class={`btn btn--${variant}`}
+	href={href}
+	target={external ? "_blank" : undefined}
+	rel={external ? "noopener noreferrer" : undefined}
+>
+	<span class="btn__label"><slot /></span>
+	<span class="btn__arrow" aria-hidden="true">→</span>
+</a>
+
+<style>
+	.btn {
+		--btn-pad-y: 0.65em;
+		--btn-pad-x: 1.15em;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5em;
+		padding: var(--btn-pad-y) var(--btn-pad-x);
+		border-radius: var(--radius-sm);
+		font-size: var(--step--1);
+		font-family: var(--font-mono);
+		text-decoration: none;
+		border: 1px solid transparent;
+		transition: transform 180ms var(--ease-snap), box-shadow 180ms var(--ease-snap),
+			background 180ms var(--ease-snap), border-color 180ms var(--ease-snap);
+	}
+
+	.btn--solid {
+		background: var(--color-accent);
+		color: var(--color-accent-ink);
+	}
+
+	.btn--outline {
+		background: transparent;
+		border-color: var(--color-border);
+		color: var(--color-ink);
+	}
+
+	.btn__arrow {
+		display: inline-block;
+		transition: transform 180ms var(--ease-snap);
+	}
+
+	.btn:hover,
+	.btn:focus-visible {
+		transform: translateY(-2px);
+		box-shadow: var(--shadow-md);
+	}
+
+	.btn--outline:hover,
+	.btn--outline:focus-visible {
+		border-color: var(--color-accent);
+	}
+
+	.btn:hover .btn__arrow,
+	.btn:focus-visible .btn__arrow {
+		transform: translateX(3px);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.btn,
+		.btn__arrow {
+			transition: none;
+		}
+	}
+</style>
