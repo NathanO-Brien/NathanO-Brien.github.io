@@ -32,7 +32,10 @@ const {
 		<header>
 			<Nav />
 		</header>
-		<main class="container" style={wide ? "--max-width: 64rem" : undefined}>
+		<main
+			class="container"
+			style={wide ? "--max-width: 70rem; margin-left: var(--space-6); margin-right: auto;" : undefined}
+		>
 			<slot />
 		</main>
 	</body>
