@@ -30,13 +30,15 @@ const {
 	</head>
 	<body class:list={[fitToViewport && "fit-to-viewport"]}>
 		{
-			/* Nav's 71rem is derived from main's 82rem max-width, hero's 69rem
-			   width, and the shared 1rem --gutter, so that nav__home lines up
-			   with the hero text's left edge (Y = max-width - 13 + 2*gutter).
-			   Recompute if max-width, the hero's width, or --gutter change. */
+			/* Nav always renders at this fixed width/gutter, on every page,
+			   so it never shifts when navigating between pages. 71rem is
+			   derived from the About page's main (82rem max-width), hero
+			   (69rem width), and the shared 1rem --gutter, so that nav__home
+			   lines up with the hero text's left edge there too
+			   (Y = max-width - 13 + 2*gutter). Recompute if those change. */
 		}
 		<header>
-			<Nav navStyle={wide ? "--max-width: 71rem; --gutter: 1rem;" : undefined} />
+			<Nav navStyle="--max-width: 71rem; --gutter: 1rem;" />
 		</header>
 		<main class="container" style={wide ? "--max-width: 82rem; --gutter: 1rem;" : undefined}>
 			<slot />
