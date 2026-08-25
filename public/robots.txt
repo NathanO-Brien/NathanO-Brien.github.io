@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /projects/sample-project/
+
+Sitemap: https://nathano-brien.github.io/sitemap-index.xml

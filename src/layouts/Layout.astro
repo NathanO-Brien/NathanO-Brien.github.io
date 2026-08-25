@@ -5,6 +5,10 @@ import "../styles/global.css";
 interface Props {
 	title: string;
 	description?: string;
+	/** Path under `public/` for the social-share preview image -- defaults to
+	 * the About page's headshot, since most pages have no natural image of
+	 * their own to offer instead. */
+	image?: string;
 	/** When true, the page is expected to fit one viewport with no scroll (homepage). */
 	fitToViewport?: boolean;
 	/** When true, main uses a wider max-width (for multi-column layouts like the hero). */
@@ -14,9 +18,18 @@ interface Props {
 const {
 	title,
 	description = "Nathan O'Brien — aerospace engineer.",
+	image = "/images/headshot.jpg",
 	fitToViewport = false,
 	wide = false,
 } = Astro.props;
+
+const pageTitle = `${title} · Nathan O'Brien`;
+// Astro.site (set in astro.config.mjs) is the deploy origin, not whatever
+// localhost/preview host is currently serving the page -- OG/Twitter
+// crawlers fetch these URLs directly, so they need to always resolve to the
+// real public site regardless of where this was rendered from.
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const ogImageURL = new URL(image, Astro.site);
 ---
 
 <html lang="en">
@@ -24,9 +37,29 @@ const {
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="description" content={description} />
+		<link rel="canonical" href={canonicalURL} />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
-		<title>{title} · Nathan O'Brien</title>
+		<title>{pageTitle}</title>
+
+		{
+			/* Open Graph + Twitter Card -- what LinkedIn/Slack/iMessage/etc. show
+			   as a preview when this URL is shared. Untested crawlers get a bare
+			   URL with no title/description/image without these. og:type stays
+			   "website" everywhere (rather than "profile" for the homepage) for
+			   the widest, most consistent renderer support. */
+		}
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Nathan O'Brien" />
+		<meta property="og:url" content={canonicalURL} />
+		<meta property="og:title" content={pageTitle} />
+		<meta property="og:description" content={description} />
+		<meta property="og:image" content={ogImageURL} />
+
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={pageTitle} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={ogImageURL} />
 	</head>
 	<body class:list={[fitToViewport && "fit-to-viewport"]}>
 		{

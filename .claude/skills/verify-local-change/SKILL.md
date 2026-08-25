@@ -97,9 +97,14 @@ top-left region, even though the real page is laid out correctly.
 
 - Take the screenshot at whatever size you were testing.
 - If it looks visually broken but your Step 2 DOM checks passed, don't
-  assume the layout is actually broken — resize slightly (e.g. 1280×800
-  → 1300×780 or 1000×700) and re-screenshot. This reliably produces a
-  clean capture in this project.
+  assume the layout is actually broken — resize once (e.g. 1280×800 →
+  1300×780 or 1000×700) and re-screenshot.
+- **Retry at most once.** If the second attempt still glitches (or the
+  screenshot/computer tool times out), stop trying — don't keep resizing
+  and re-screenshotting. Fall back to reporting the Step 2 DOM
+  measurements and say plainly that a visual screenshot wasn't obtained
+  this round. Burning multiple retries on a known tool glitch wastes
+  time; the DOM checks are the reliable source of truth anyway.
 - Trust the DOM measurements over screenshot pixels if they ever disagree.
 
 Once you have a clean screenshot, actually evaluate it against the
