@@ -1,0 +1,191 @@
+---
+import ProjectGallery from "./ProjectGallery.astro";
+
+interface GalleryItem {
+	type: "image" | "pdf";
+	src: string;
+	alt?: string;
+}
+
+interface Props {
+	id: string;
+	title: string;
+	summary: string;
+	dateLabel: string;
+	status: "ongoing" | "complete";
+	tags?: string[];
+	links?: { label: string; url: string }[];
+	gallery?: GalleryItem[];
+}
+
+const { id, title, summary, dateLabel, status, tags = [], links = [], gallery = [] } = Astro.props;
+---
+
+<article class="pcard">
+	<div class="pcard__media">
+		{
+			gallery.length > 0 ? (
+				<ProjectGallery items={gallery} id={id} label={title} />
+			) : (
+				<div class="pcard__media-empty" aria-hidden="true" />
+			)
+		}
+		<span class="pcard__status" class:list={{ "pcard__status--ongoing": status === "ongoing" }}>
+			{status}
+		</span>
+	</div>
+
+	<div class="pcard__body">
+		<p class="pcard__date">{dateLabel}</p>
+		<h3>{title}</h3>
+		<p class="pcard__summary">{summary}</p>
+
+		{
+			tags.length > 0 && (
+				<ul class="pcard__tags">
+					{tags.map((tag) => (
+						<li>{tag}</li>
+					))}
+				</ul>
+			)
+		}
+
+		<a class="pcard__detail-link" href={`/projects/${id}/`}>
+			Full details →
+		</a>
+
+		{
+			links.length > 0 && (
+				<div class="pcard__links">
+					{links.map((link) => (
+						<a href={link.url} target="_blank" rel="noopener noreferrer">
+							{link.label} ↗
+						</a>
+					))}
+				</div>
+			)
+		}
+	</div>
+</article>
+
+<style>
+	/* Deliberately not EntryCard: no logo bubble, no org/date framing line,
+	   no click-to-expand modal. The media strip lives inside the card itself
+	   (top), a status pill replaces the mono eyebrow-only convention Career
+	   uses, and the whole thing reads as a project catalog, not a resume. */
+	.pcard {
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-lg);
+		overflow: hidden;
+		background: var(--color-surface);
+		display: flex;
+		flex-direction: column;
+	}
+
+	.pcard__media {
+		position: relative;
+	}
+
+	.pcard__media-empty {
+		width: 100%;
+		aspect-ratio: 4 / 3;
+		background: repeating-linear-gradient(
+			135deg,
+			var(--color-bg),
+			var(--color-bg) 10px,
+			var(--color-border) 10px,
+			var(--color-border) 11px
+		);
+	}
+
+	.pcard__status {
+		position: absolute;
+		top: var(--space-2);
+		left: var(--space-2);
+		font-family: var(--font-mono);
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--color-ink);
+		background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+		border-radius: var(--radius-sm);
+		padding: 3px 7px;
+		z-index: 1;
+	}
+
+	.pcard__status--ongoing {
+		color: var(--color-accent-ink);
+		background: var(--color-accent);
+	}
+
+	.pcard__body {
+		padding: var(--space-4);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		flex: 1;
+	}
+
+	.pcard__date {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+	}
+
+	.pcard__body h3 {
+		font-size: var(--step-1);
+	}
+
+	.pcard__summary {
+		color: var(--color-muted);
+		flex: 1;
+	}
+
+	.pcard__tags {
+		list-style: none;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+		padding: 0;
+		margin-top: var(--space-1);
+	}
+
+	.pcard__tags li {
+		font-family: var(--font-mono);
+		font-size: 11px;
+		color: var(--color-muted);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: 2px 7px;
+	}
+
+	.pcard__detail-link {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-accent);
+		text-decoration: none;
+		margin-top: var(--space-1);
+	}
+
+	.pcard__detail-link:hover {
+		text-decoration: underline;
+	}
+
+	.pcard__links {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-3);
+		margin-top: var(--space-1);
+	}
+
+	.pcard__links a {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-accent);
+		text-decoration: none;
+	}
+
+	.pcard__links a:hover {
+		text-decoration: underline;
+	}
+</style>

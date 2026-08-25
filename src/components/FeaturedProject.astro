@@ -1,0 +1,218 @@
+---
+interface Props {
+	id: string;
+	title: string;
+	summary: string;
+	embedUrl: string;
+	instructions?: string[];
+	links?: { label: string; url: string }[];
+	tags?: string[];
+}
+
+const { id, title, summary, embedUrl, instructions = [], links = [], tags = [] } = Astro.props;
+---
+
+<section class="featured">
+	<div class="featured__embed-wrap">
+		<iframe class="featured__embed" src={embedUrl} title={title} loading="eager"></iframe>
+	</div>
+	<a class="featured__open" href={embedUrl} target="_blank" rel="noopener noreferrer">
+		Open in a new tab ↗
+	</a>
+
+	<div class="featured__info">
+		<h2>{title}</h2>
+
+		<div class="featured__block">
+			<p class="featured__section-label">Summary</p>
+			<p class="featured__summary">{summary}</p>
+
+			{tags.length > 0 && (
+				<ul class="featured__tags">
+					{tags.map((tag) => (
+						<li>{tag}</li>
+					))}
+				</ul>
+			)}
+		</div>
+
+		{instructions.length > 0 && (
+			<div class="featured__block">
+				<p class="featured__section-label">How to use it</p>
+				<ol class="featured__instructions">
+					{instructions.map((step) => (
+						<li>{step}</li>
+					))}
+				</ol>
+			</div>
+		)}
+
+		<a class="featured__detail-btn" href={`/projects/${id}/`}>
+			Full project details →
+		</a>
+
+		{links.length > 0 && (
+			<div class="featured__links">
+				{links.map((link) => (
+					<a class="featured__link" href={link.url} target="_blank" rel="noopener noreferrer">
+						{link.label} ↗
+					</a>
+				))}
+			</div>
+		)}
+	</div>
+</section>
+
+<style>
+	/* Deliberately its own visual language, not EntryCard's: no logo bubble,
+	   no dashed frame, no click-to-expand modal. The tool is the artifact;
+	   everything else is a caption underneath it.
+
+	   Pinned to the same 69rem-wide, margin-inline:auto box as the page's
+	   own header (see the matching comment on .page-header in
+	   projects/index.astro) so the embed's left edge lines up with
+	   nav__home, instead of sprawling to the full 82rem `wide` main. */
+	.featured {
+		width: 69rem;
+		max-width: 100%;
+		margin-inline: auto;
+		margin-bottom: var(--space-8);
+	}
+
+	.featured__embed-wrap {
+		width: 100%;
+		height: min(80vh, 44rem);
+		border-radius: var(--radius-lg);
+		overflow: hidden;
+		border: 1px solid var(--color-border);
+		background: var(--color-surface);
+	}
+
+	.featured__embed {
+		width: 100%;
+		height: 100%;
+		border: none;
+		display: block;
+	}
+
+	.featured__open {
+		display: inline-block;
+		margin-top: var(--space-2);
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+		text-decoration: none;
+	}
+
+	.featured__open:hover,
+	.featured__open:focus-visible {
+		color: var(--color-accent);
+		text-decoration: underline;
+	}
+
+	.featured__info {
+		margin-top: var(--space-6);
+	}
+
+	.featured__info h2 {
+		font-size: var(--step-2);
+		margin-bottom: var(--space-5);
+	}
+
+	.featured__block {
+		max-width: 42rem;
+	}
+
+	.featured__block + .featured__block {
+		margin-top: var(--space-5);
+	}
+
+	.featured__summary {
+		color: var(--color-muted);
+	}
+
+	.featured__tags {
+		list-style: none;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+		margin-top: var(--space-3);
+		padding: 0;
+	}
+
+	.featured__tags li {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: var(--space-1) var(--space-2);
+	}
+
+	.featured__section-label {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-ink);
+		font-weight: 600;
+		margin-bottom: var(--space-2);
+	}
+
+	.featured__instructions {
+		margin: 0;
+		padding-left: 1.3em;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+
+	.featured__instructions li {
+		color: var(--color-muted);
+		line-height: 1.5;
+	}
+
+	.featured__detail-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5em;
+		margin-top: var(--space-6);
+		padding: 0.65em 1.15em;
+		border-radius: var(--radius-sm);
+		font-size: var(--step--1);
+		font-family: var(--font-mono);
+		text-decoration: none;
+		border: 1px solid var(--color-border);
+		color: var(--color-ink);
+		background: transparent;
+		transition: border-color 180ms var(--ease-snap), transform 180ms var(--ease-snap);
+	}
+
+	.featured__detail-btn:hover,
+	.featured__detail-btn:focus-visible {
+		border-color: var(--color-accent);
+		transform: translateY(-2px);
+	}
+
+	.featured__links {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-4);
+		margin-top: var(--space-4);
+	}
+
+	.featured__link {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		text-decoration: none;
+		color: var(--color-accent);
+	}
+
+	.featured__link:hover {
+		text-decoration: underline;
+	}
+
+	@media (max-width: 860px) {
+		.featured__embed-wrap {
+			height: min(70vh, 32rem);
+		}
+	}
+</style>

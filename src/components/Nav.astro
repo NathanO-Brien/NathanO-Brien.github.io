@@ -1,4 +1,7 @@
 ---
+import { getCollection } from "astro:content";
+import ProjectsDropdown from "./ProjectsDropdown.astro";
+
 interface Props {
 	/** Raw inline CSS custom-property overrides, e.g. "--max-width: 71rem; --gutter: 1rem;" */
 	navStyle?: string;
@@ -8,6 +11,7 @@ const { navStyle }: Props = Astro.props;
 
 const links = [
 	{ href: "/", label: "About" },
+	{ href: "/news/", label: "News" },
 	{ href: "/career/", label: "Career" },
 	{ href: "/projects/", label: "Projects" },
 ];
@@ -15,22 +19,81 @@ const links = [
 const path = Astro.url.pathname;
 const isActive = (href: string) =>
 	href === "/" ? path === "/" : path.startsWith(href);
+
+function formatMonthYear(date: string) {
+	const [year, month] = date.split("-").map(Number);
+	const monthName = new Date(Date.UTC(year, month - 1, 1)).toLocaleString("en-US", {
+		month: "long",
+		timeZone: "UTC",
+	});
+	return `${monthName} ${year}`;
+}
+
+// One dropdown row per project, automatically -- adding a new project .md
+// file adds a new row with no code changes. Deliberately does NOT exclude
+// the featured entry the way projects/index.astro's grid does; the
+// dropdown lists every non-hidden project.
+const sortedProjects = (await getCollection("projects"))
+	.filter((entry) => !entry.data.hidden)
+	.sort((a, b) => {
+		const endA = a.data.endDate ?? "9999-99";
+		const endB = b.data.endDate ?? "9999-99";
+		return endB.localeCompare(endA) || b.data.startDate.localeCompare(a.data.startDate) || a.data.order - b.data.order;
+	})
+	.map((entry) => ({
+		id: entry.id,
+		title: entry.data.title,
+		// Compact single-date label for the dropdown row -- the status pill
+		// already conveys "ongoing" vs "complete", so a full start-end range
+		// here would be redundant and risks the title/status wrapping this
+		// panel's width was specifically tuned to avoid (see ProjectsDropdown.astro).
+		dateLabel: formatMonthYear(entry.data.startDate),
+		status: entry.data.status,
+		thumbnail: entry.data.thumbnail,
+		gallery: entry.data.gallery,
+	}));
 ---
 
 <nav class="nav" style={navStyle}>
 	<a class="nav__home" href="/">Nathan O'Brien</a>
 	<ul class="nav__links">
 		{
-			links.map((link) => (
-				<li>
-					<a href={link.href} aria-current={isActive(link.href) ? "page" : undefined}>
-						{link.label}
-					</a>
-				</li>
-			))
+			links.map((link) => {
+				const isProjectsDropdown = link.href === "/projects/";
+				return (
+					<li class:list={["nav__item", isProjectsDropdown && "nav__item--has-dropdown"]} data-dropdown-item={isProjectsDropdown || undefined}>
+						<a
+							href={link.href}
+							aria-current={isActive(link.href) ? "page" : undefined}
+							aria-haspopup={isProjectsDropdown ? "true" : undefined}
+							aria-expanded={isProjectsDropdown ? "false" : undefined}
+							data-dropdown-trigger={isProjectsDropdown || undefined}
+						>
+							{link.label}
+						</a>
+						{isProjectsDropdown && <ProjectsDropdown projects={sortedProjects} />}
+					</li>
+				);
+			})
 		}
+		<li>
+			<button type="button" data-resume-open>
+				Resume
+			</button>
+		</li>
 	</ul>
 </nav>
+
+<dialog class="resume-viewer" id="resume-viewer">
+	<div class="resume-viewer__bar">
+		<span>Nathan O'Brien &mdash; Resume</span>
+		<div class="resume-viewer__actions">
+			<a href="/docs/nathan-obrien-resume.pdf" download>Download &#8595;</a>
+			<button type="button" data-resume-close aria-label="Close">&#10005;</button>
+		</div>
+	</div>
+	<iframe src="/docs/nathan-obrien-resume.pdf" title="Nathan O'Brien's resume"></iframe>
+</dialog>
 
 <style>
 	.nav {
@@ -61,16 +124,25 @@ const isActive = (href: string) =>
 		font-size: var(--step--1);
 	}
 
-	.nav__links a {
+	.nav__links a,
+	.nav__links button {
+		display: inline-flex;
+		align-items: center;
 		text-decoration: none;
 		color: var(--color-muted);
 		padding-block: var(--space-1);
 		border-bottom: 2px solid transparent;
 		transition: color 160ms var(--ease-snap), border-color 160ms var(--ease-snap);
+		font: inherit;
+		background: none;
+		border-inline: none;
+		border-top: none;
+		cursor: pointer;
 	}
 
 	.nav__links a:hover,
-	.nav__links a[aria-current="page"] {
+	.nav__links a[aria-current="page"],
+	.nav__links button:hover {
 		color: var(--color-ink);
 		border-color: var(--color-accent);
 	}
@@ -84,3 +156,208 @@ const isActive = (href: string) =>
 		}
 	}
 </style>
+
+<style>
+	/* Shared reveal mechanism for the Projects dropdown -- ProjectsDropdown.astro
+	   only styles its own panel's contents, positioning/show-hide lives here
+	   once. Base state is always hidden regardless of media-query support,
+	   so an unsupported browser fails safe (permanently hidden, never
+	   permanently visible). */
+	.nav__item--has-dropdown {
+		position: relative;
+	}
+
+	.nav__item--has-dropdown :global(.projects-dropdown) {
+		position: absolute;
+		top: 100%;
+		right: 0; /* Projects sits near the end of nav__links -- a left-aligned
+		             wide panel would overflow past the nav's right edge */
+		/* padding-top, NOT margin-top: margin sits outside this element's own
+		   box, so it isn't part of what counts as "hovering this element" --
+		   moving the mouse straight down from the trigger through a margin
+		   gap briefly hovers nothing at all, un-hovering the trigger's <li>
+		   and closing the panel before the pointer ever reaches it (the bug
+		   report: "disappears before I can select them"). padding IS part of
+		   the box, so the same visual gap stays continuously hoverable; the
+		   visible panel itself (ProjectsDropdown.astro's own .pdrop-b, an
+		   inner element) renders below this padding, so nothing appears
+		   inside the gap -- it's purely a hover bridge, invisible either way. */
+		padding-top: var(--space-2);
+		z-index: 30; /* below Career's sticky header (50), above CategoryFilter's sticky bar (5) */
+		opacity: 0;
+		visibility: hidden;
+		pointer-events: none;
+		transform: translateY(-4px);
+		/* visibility is intentionally NOT transitioned/delayed -- it flips
+		   instantly with the state change (both open and close), which is
+		   what keeps a closed panel's links reliably out of tab order. Only
+		   opacity/transform animate, so opening fades in; closing is an
+		   instant cut rather than a fade-out, a deliberate simplicity
+		   trade-off over a delayed-visibility fade-out trick. */
+		transition: opacity 160ms var(--ease-snap), transform 160ms var(--ease-snap);
+	}
+
+	/* Hover/focus capability gate, not a viewport-width breakpoint -- this
+	   correctly hides on a wide touch tablet (no hover, but wide) and
+	   correctly shows on a narrow-but-mouse-driven desktop window, neither
+	   of which a width breakpoint alone could distinguish. */
+	@media (hover: hover) and (pointer: fine) {
+		.nav__item--has-dropdown:hover :global(.projects-dropdown),
+		.nav__item--has-dropdown:focus-within :global(.projects-dropdown) {
+			opacity: 1;
+			visibility: visible;
+			pointer-events: auto;
+			transform: none;
+		}
+
+		/* Same specificity as the rule above -- wins purely by appearing later
+		   in source order. Do not reorder above the :hover/:focus-within rule
+		   or Escape-to-close (see the script below) silently breaks. */
+		.nav__item--has-dropdown.is-dismissed :global(.projects-dropdown) {
+			opacity: 0;
+			visibility: hidden;
+			pointer-events: none;
+			transform: translateY(-4px);
+		}
+	}
+</style>
+
+<style>
+	/* Fills the entire viewport, unlike DocPreview's centered card modal --
+	   "encompasses the whole page" per spec, so no radius/margin/max-width
+	   cap the way every other dialog on this site has. */
+	.resume-viewer {
+		border: none;
+		padding: 0;
+		width: 100vw;
+		height: 100vh;
+		max-width: 100vw;
+		max-height: 100vh;
+		margin: 0;
+		background: var(--color-surface);
+		color: var(--color-ink);
+	}
+
+	.resume-viewer::backdrop {
+		background: rgba(10, 10, 12, 0.55);
+	}
+
+	.resume-viewer__bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: var(--space-3) var(--space-4);
+		border-bottom: 1px solid var(--color-border);
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+	}
+
+	.resume-viewer__actions {
+		display: flex;
+		align-items: center;
+		gap: var(--space-4);
+	}
+
+	.resume-viewer__actions a {
+		color: var(--color-accent);
+		text-decoration: none;
+	}
+
+	.resume-viewer__actions a:hover {
+		text-decoration: underline;
+	}
+
+	.resume-viewer__actions button {
+		border: none;
+		background: transparent;
+		color: var(--color-muted);
+		font-size: 1rem;
+		cursor: pointer;
+		line-height: 1;
+		padding: 0.25em;
+	}
+
+	.resume-viewer__actions button:hover {
+		color: var(--color-ink);
+	}
+
+	.resume-viewer iframe {
+		display: block;
+		width: 100%;
+		height: calc(100% - 2.75rem);
+		border: none;
+	}
+</style>
+
+<script>
+	function wireUpResumeViewer() {
+		// More than one trigger can exist on a page (the nav's own button,
+		// plus e.g. the About page's "Resume" hero button) -- wire up every
+		// one of them, not just the first.
+		const triggers = [...document.querySelectorAll<HTMLElement>("[data-resume-open]:not([data-wired])")];
+		const dialog = document.getElementById("resume-viewer") as HTMLDialogElement | null;
+		if (!dialog) return;
+
+		triggers.forEach((trigger) => {
+			trigger.dataset.wired = "true";
+			// preventDefault matters for an <a>-based trigger (its href is a
+			// real, working fallback link straight to the PDF) -- without it,
+			// the click would both open the modal AND navigate away.
+			trigger.addEventListener("click", (event) => {
+				event.preventDefault();
+				dialog.showModal();
+			});
+		});
+
+		if (dialog.dataset.wired) return;
+		dialog.dataset.wired = "true";
+		dialog.querySelector("[data-resume-close]")?.addEventListener("click", () => dialog.close());
+		dialog.addEventListener("click", (event) => {
+			if (event.target === dialog) dialog.close();
+		});
+	}
+
+	function wireProjectsDropdown() {
+		const items = [...document.querySelectorAll<HTMLElement>("[data-dropdown-item]:not([data-wired])")];
+		if (items.length === 0) return;
+
+		items.forEach((li) => {
+			li.dataset.wired = "true";
+			const trigger = li.querySelector<HTMLElement>("[data-dropdown-trigger]");
+			if (!trigger) return;
+
+			const syncExpanded = () => {
+				const open = li.matches(":hover, :focus-within") && !li.classList.contains("is-dismissed");
+				trigger.setAttribute("aria-expanded", String(open));
+			};
+
+			li.addEventListener("mouseenter", () => {
+				li.classList.remove("is-dismissed");
+				syncExpanded();
+			});
+			li.addEventListener("mouseleave", syncExpanded);
+			li.addEventListener("focusin", syncExpanded);
+			li.addEventListener("focusout", (event) => {
+				// Only clear the dismissal once focus truly leaves the item --
+				// clearing it on every focusin would undo Escape's own
+				// trigger.focus() call below and instantly reopen the panel it
+				// just closed.
+				if (!li.contains(event.relatedTarget as Node | null)) li.classList.remove("is-dismissed");
+				syncExpanded();
+			});
+			li.addEventListener("keydown", (event) => {
+				if (event.key !== "Escape") return;
+				li.classList.add("is-dismissed");
+				trigger.focus();
+				syncExpanded();
+			});
+		});
+	}
+
+	wireUpResumeViewer();
+	wireProjectsDropdown();
+	document.addEventListener("astro:page-load", () => {
+		wireUpResumeViewer();
+		wireProjectsDropdown();
+	});
+</script>

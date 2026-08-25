@@ -4,9 +4,10 @@ interface Props {
 	variant?: "solid" | "outline";
 	external?: boolean;
 	class?: string;
+	[dataAttr: `data-${string}`]: string | boolean | undefined;
 }
 
-const { href, variant = "solid", external = false, class: className } = Astro.props;
+const { href, variant = "solid", external = false, class: className, ...rest } = Astro.props;
 ---
 
 <a
@@ -14,6 +15,7 @@ const { href, variant = "solid", external = false, class: className } = Astro.pr
 	href={href}
 	target={external ? "_blank" : undefined}
 	rel={external ? "noopener noreferrer" : undefined}
+	{...rest}
 >
 	<span class="btn__label"><slot /></span>
 	<span class="btn__arrow" aria-hidden="true">→</span>

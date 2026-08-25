@@ -1,0 +1,405 @@
+---
+interface GalleryItem {
+	type: "image" | "pdf";
+	src: string;
+	alt?: string;
+}
+
+interface Props {
+	items: GalleryItem[];
+	/** Unique id suffix so multiple galleries can live on one page. */
+	id: string;
+	/** Used as alt-text prefix, e.g. "Constellation sweep tool". */
+	label: string;
+}
+
+const { items, id, label } = Astro.props;
+---
+
+{
+	items.length > 0 && (
+		<div class="pgallery" data-pgallery={id}>
+			<div class="pgallery__viewport">
+				{items.map((item, i) => (
+					<button
+						type="button"
+						class="pgallery__slide"
+						class:list={{ "is-active": i === 0 }}
+						data-dialog={`pgallery-${id}-${i}`}
+						aria-label={`Open ${item.type === "pdf" ? "document" : "photo"} ${i + 1} of ${items.length}: ${label}`}
+					>
+						{item.type === "image" ? (
+							<img src={item.src} alt={item.alt ?? `${label} — image ${i + 1}`} loading="lazy" />
+						) : (
+							<span class="pgallery__pdf-tile">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+									<path d="M6 2h9l5 5v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" />
+									<path d="M14 2v6h6" />
+								</svg>
+								<span>{item.alt ?? `Document ${i + 1}`}</span>
+							</span>
+						)}
+					</button>
+				))}
+			</div>
+
+			{items.length > 1 && (
+				<>
+					<button type="button" class="pgallery__arrow pgallery__arrow--prev" data-pgallery-prev aria-label="Previous">
+						‹
+					</button>
+					<button type="button" class="pgallery__arrow pgallery__arrow--next" data-pgallery-next aria-label="Next">
+						›
+					</button>
+					<div class="pgallery__dots">
+						{items.map((_, i) => (
+							<button
+								type="button"
+								class="pgallery__dot"
+								class:list={{ "is-active": i === 0 }}
+								data-pgallery-dot={i}
+								aria-label={`Go to slide ${i + 1}`}
+							/>
+						))}
+					</div>
+				</>
+			)}
+
+			{items.map((item, i) => (
+				<dialog id={`pgallery-${id}-${i}`} class="pgallery-modal" data-pgallery-modal={id} data-pgallery-modal-index={i}>
+					<button type="button" class="pgallery-modal__close" data-close={`pgallery-${id}-${i}`} aria-label="Close">
+						✕
+					</button>
+					{items.length > 1 && (
+						<>
+							<button type="button" class="pgallery-modal__arrow pgallery-modal__arrow--prev" data-modal-prev aria-label="Previous">
+								‹
+							</button>
+							<button type="button" class="pgallery-modal__arrow pgallery-modal__arrow--next" data-modal-next aria-label="Next">
+								›
+							</button>
+						</>
+					)}
+					{item.type === "image" ? (
+						<img src={item.src} alt={item.alt ?? `${label} — image ${i + 1}`} />
+					) : (
+						<iframe src={item.src} title={item.alt ?? `Document ${i + 1}`} />
+					)}
+				</dialog>
+			))}
+		</div>
+	)
+}
+
+<style>
+	.pgallery {
+		position: relative;
+	}
+
+	.pgallery__viewport {
+		position: relative;
+		width: 100%;
+		aspect-ratio: 4 / 3;
+		overflow: hidden;
+		background: var(--color-bg);
+	}
+
+	.pgallery__slide {
+		position: absolute;
+		inset: 0;
+		padding: 0;
+		border: none;
+		cursor: pointer;
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 420ms var(--ease-snap);
+	}
+
+	.pgallery__slide.is-active {
+		opacity: 1;
+		pointer-events: auto;
+	}
+
+	.pgallery__slide img {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		display: block;
+	}
+
+	.pgallery__pdf-tile {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-2);
+		width: 100%;
+		height: 100%;
+		background: var(--color-surface);
+		color: var(--color-muted);
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		padding: var(--space-3);
+		text-align: center;
+	}
+
+	.pgallery__pdf-tile svg {
+		width: 2rem;
+		height: 2rem;
+	}
+
+	.pgallery__arrow {
+		position: absolute;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 1.9rem;
+		height: 1.9rem;
+		border-radius: 999px;
+		border: none;
+		background: rgba(10, 10, 12, 0.5);
+		color: #fff;
+		font-size: 1.1rem;
+		line-height: 1;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		opacity: 0;
+		transition: opacity 160ms var(--ease-snap);
+	}
+
+	.pgallery:hover .pgallery__arrow,
+	.pgallery:focus-within .pgallery__arrow {
+		opacity: 1;
+	}
+
+	.pgallery__arrow--prev {
+		left: var(--space-2);
+	}
+
+	.pgallery__arrow--next {
+		right: var(--space-2);
+	}
+
+	.pgallery__dots {
+		position: absolute;
+		bottom: var(--space-2);
+		left: 50%;
+		transform: translateX(-50%);
+		display: flex;
+		gap: 6px;
+	}
+
+	.pgallery__dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 999px;
+		border: none;
+		padding: 0;
+		background: rgba(255, 255, 255, 0.55);
+		cursor: pointer;
+	}
+
+	.pgallery__dot.is-active {
+		background: #fff;
+	}
+
+	.pgallery-modal {
+		border: none;
+		border-radius: var(--radius-lg);
+		padding: 0;
+		width: min(90vw, 60rem);
+		max-height: 85vh;
+		margin: auto;
+		box-shadow: var(--shadow-md);
+		background: var(--color-surface);
+	}
+
+	.pgallery-modal[open] {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.pgallery-modal::backdrop {
+		background: rgba(10, 10, 12, 0.55);
+	}
+
+	.pgallery-modal img {
+		display: block;
+		max-width: min(90vw, 60rem);
+		max-height: 85vh;
+		width: auto;
+		height: auto;
+		margin: auto;
+		object-fit: contain;
+	}
+
+	.pgallery-modal iframe {
+		display: block;
+		width: min(90vw, 56rem);
+		height: min(85vh, 70rem);
+		border: none;
+	}
+
+	.pgallery-modal__close {
+		position: absolute;
+		top: var(--space-3);
+		right: var(--space-3);
+		border: none;
+		border-radius: 999px;
+		width: 2rem;
+		height: 2rem;
+		background: rgba(10, 10, 12, 0.55);
+		color: #fff;
+		cursor: pointer;
+		line-height: 1;
+		z-index: 1;
+	}
+
+	.pgallery-modal__arrow {
+		position: absolute;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 2.4rem;
+		height: 2.4rem;
+		border-radius: 999px;
+		border: none;
+		background: rgba(10, 10, 12, 0.55);
+		color: #fff;
+		font-size: 1.3rem;
+		line-height: 1;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1;
+	}
+
+	.pgallery-modal__arrow--prev {
+		left: var(--space-3);
+	}
+
+	.pgallery-modal__arrow--next {
+		right: var(--space-3);
+	}
+</style>
+
+<script>
+	function wireUpProjectGalleries() {
+		document.querySelectorAll<HTMLElement>("[data-pgallery]").forEach((root) => {
+			if (root.dataset.wired) return;
+			root.dataset.wired = "true";
+
+			const slides = [...root.querySelectorAll<HTMLElement>(".pgallery__slide")];
+			const dots = [...root.querySelectorAll<HTMLElement>("[data-pgallery-dot]")];
+			const prevBtn = root.querySelector<HTMLElement>("[data-pgallery-prev]");
+			const nextBtn = root.querySelector<HTMLElement>("[data-pgallery-next]");
+			if (slides.length === 0) return;
+
+			let active = 0;
+			let timer: ReturnType<typeof setInterval> | null = null;
+
+			function show(i: number) {
+				active = (i + slides.length) % slides.length;
+				slides.forEach((s, idx) => s.classList.toggle("is-active", idx === active));
+				dots.forEach((d, idx) => d.classList.toggle("is-active", idx === active));
+			}
+
+			function next() {
+				show(active + 1);
+			}
+			function prev() {
+				show(active - 1);
+			}
+
+			function stop() {
+				if (timer) {
+					clearInterval(timer);
+					timer = null;
+				}
+			}
+
+			function start() {
+				if (slides.length < 2) return;
+				if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+				stop();
+				timer = setInterval(next, 4500);
+			}
+
+			prevBtn?.addEventListener("click", () => {
+				prev();
+				start();
+			});
+			nextBtn?.addEventListener("click", () => {
+				next();
+				start();
+			});
+			dots.forEach((d, idx) =>
+				d.addEventListener("click", () => {
+					show(idx);
+					start();
+				})
+			);
+
+			root.addEventListener("mouseenter", stop);
+			root.addEventListener("mouseleave", start);
+			root.addEventListener("focusin", stop);
+			root.addEventListener("focusout", start);
+			root.addEventListener("pgallery-sync", ((event: CustomEvent<{ index: number }>) => {
+				stop();
+				show(event.detail.index);
+			}) as EventListener);
+
+			start();
+		});
+	}
+
+	function wireUpProjectGalleryDialogs() {
+		document.querySelectorAll<HTMLElement>("[data-pgallery]").forEach((root) => {
+			const galleryId = root.dataset.pgallery!;
+			const dialogs = [...root.querySelectorAll<HTMLDialogElement>(`[data-pgallery-modal="${galleryId}"]`)].sort(
+				(a, b) => Number(a.dataset.pgalleryModalIndex) - Number(b.dataset.pgalleryModalIndex)
+			);
+			if (dialogs.length === 0) return;
+
+			function openAt(i: number) {
+				const target = dialogs[(i + dialogs.length) % dialogs.length];
+				dialogs.forEach((d) => {
+					if (d !== target && d.open) d.close();
+				});
+				if (!target.open) target.showModal();
+				root.dispatchEvent(new CustomEvent("pgallery-sync", { detail: { index: Number(target.dataset.pgalleryModalIndex) } }));
+			}
+
+			dialogs.forEach((dialog, i) => {
+				if (dialog.dataset.dialogWired) return;
+				dialog.dataset.dialogWired = "true";
+
+				dialog.querySelector("[data-close]")?.addEventListener("click", () => dialog.close());
+				dialog.addEventListener("click", (event) => {
+					if (event.target === dialog) dialog.close();
+				});
+				dialog.querySelector("[data-modal-prev]")?.addEventListener("click", () => openAt(i - 1));
+				dialog.querySelector("[data-modal-next]")?.addEventListener("click", () => openAt(i + 1));
+				dialog.addEventListener("keydown", (event) => {
+					if (event.key === "ArrowLeft") openAt(i - 1);
+					if (event.key === "ArrowRight") openAt(i + 1);
+				});
+			});
+
+			root.querySelectorAll<HTMLButtonElement>("[data-dialog]").forEach((trigger, i) => {
+				if (trigger.dataset.dialogWired) return;
+				trigger.dataset.dialogWired = "true";
+				trigger.addEventListener("click", () => openAt(i));
+			});
+		});
+	}
+
+	wireUpProjectGalleries();
+	wireUpProjectGalleryDialogs();
+	document.addEventListener("astro:page-load", () => {
+		wireUpProjectGalleries();
+		wireUpProjectGalleryDialogs();
+	});
+</script>

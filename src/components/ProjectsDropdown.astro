@@ -1,0 +1,177 @@
+---
+// Hover-revealed dropdown under the nav's "Projects" link (wired in
+// Nav.astro) -- one row per project, automatically sourced from the
+// projects content collection so a new project .md file adds a new row
+// with no code changes. Positioning/reveal/hover-bridge CSS lives in
+// Nav.astro (targets .projects-dropdown, the outer element below, via
+// :global()); this component only styles its own visible panel contents.
+//
+// The outer .projects-dropdown div is a plain, always-transparent wrapper
+// -- it exists so Nav.astro's shared CSS can give it padding-top (a
+// hoverable gap-bridge, see the comment there) without that padding
+// visually pushing the panel's own border/background/shadow up into the
+// gap. The actual visible bordered panel is the nested .pdrop-b div.
+interface GalleryItem {
+	type: "image" | "pdf";
+	src: string;
+	alt?: string;
+}
+
+interface DropdownProject {
+	id: string;
+	title: string;
+	dateLabel: string;
+	status: "ongoing" | "complete";
+	/** Optional dedicated thumbnail (see content.config.ts) -- preferred over `gallery` when set. */
+	thumbnail?: string;
+	gallery: GalleryItem[];
+}
+
+interface Props {
+	projects: DropdownProject[];
+}
+
+const { projects } = Astro.props;
+
+// Prefer a dedicated thumbnail; projects without one fall back to the first
+// gallery image, which could itself be empty or start with a pdf slide
+// rather than an image -- both cases fall back further to the placeholder
+// below rather than a broken img.
+function thumbnailSrc(p: DropdownProject): string | null {
+	if (p.thumbnail) return p.thumbnail;
+	const first = p.gallery[0];
+	return first && first.type === "image" ? first.src : null;
+}
+---
+
+<div class="projects-dropdown">
+	<div class="pdrop-b">
+		{
+			projects.map((p) => {
+				const thumb = thumbnailSrc(p);
+				return (
+					<a href={`/projects/${p.id}/`} class="pdrop-b__row">
+						<span class="pdrop-b__thumb">
+							{thumb ? <img src={thumb} alt="" loading="lazy" /> : <span class="pdrop-b__thumb-empty" aria-hidden="true" />}
+						</span>
+						<span class="pdrop-b__text">
+							<span class="pdrop-b__row-top">
+								<span class="pdrop-b__title">{p.title}</span>
+								<span class="pdrop-b__status" class:list={{ "pdrop-b__status--ongoing": p.status === "ongoing" }}>
+									{p.status}
+								</span>
+							</span>
+							<span class="pdrop-b__date">{p.dateLabel}</span>
+						</span>
+					</a>
+				);
+			})
+		}
+	</div>
+</div>
+
+<style>
+	.pdrop-b {
+		width: 36rem;
+		max-width: calc(100vw - 2rem);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		box-shadow: var(--shadow-md);
+		overflow: hidden;
+	}
+
+	.pdrop-b__row {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-3);
+		text-decoration: none;
+		border-top: 1px solid var(--color-border);
+		transition: background-color 160ms var(--ease-snap);
+	}
+
+	.pdrop-b__row:first-child {
+		border-top: none;
+	}
+
+	.pdrop-b__row:hover,
+	.pdrop-b__row:focus-visible {
+		background: var(--color-bg);
+	}
+
+	.pdrop-b__thumb {
+		flex-shrink: 0;
+		display: block;
+		width: 2.75rem;
+		height: 2.75rem;
+		border-radius: var(--radius-sm);
+		overflow: hidden;
+		background: var(--color-bg);
+	}
+
+	.pdrop-b__thumb img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
+	}
+
+	.pdrop-b__thumb-empty {
+		display: block;
+		width: 100%;
+		height: 100%;
+		background: repeating-linear-gradient(
+			135deg,
+			var(--color-bg),
+			var(--color-bg) 6px,
+			var(--color-border) 6px,
+			var(--color-border) 7px
+		);
+	}
+
+	.pdrop-b__text {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+	}
+
+	.pdrop-b__row-top {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+	}
+
+	.pdrop-b__title {
+		font-size: var(--step--1);
+		font-weight: 600;
+		color: var(--color-ink);
+	}
+
+	.pdrop-b__status {
+		flex-shrink: 0;
+		font-family: var(--font-mono);
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--color-ink);
+		background: color-mix(in srgb, var(--color-bg) 85%, transparent);
+		border-radius: var(--radius-sm);
+		padding: 3px 7px;
+	}
+
+	.pdrop-b__status--ongoing {
+		color: var(--color-accent-ink);
+		background: var(--color-accent);
+	}
+
+	.pdrop-b__date {
+		font-family: var(--font-mono);
+		font-size: 10px;
+		color: var(--color-muted);
+	}
+</style>

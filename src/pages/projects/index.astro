@@ -1,31 +1,70 @@
 ---
 import { getCollection } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
-import EntryCard from "../../components/EntryCard.astro";
+import ProjectCard from "../../components/ProjectCard.astro";
+import FeaturedProject from "../../components/FeaturedProject.astro";
 
-const entries = (await getCollection("projects")).sort(
-	(a, b) => b.data.date.localeCompare(a.data.date) || a.data.order - b.data.order
-);
+const allEntries = await getCollection("projects");
+const featured = allEntries.find((entry) => entry.data.featured);
+const entries = allEntries
+	.filter((entry) => !entry.data.featured && !entry.data.hidden)
+	.sort((a, b) => {
+		const endA = a.data.endDate ?? "9999-99"; // no endDate = ongoing, sorts as if ending after everything else
+		const endB = b.data.endDate ?? "9999-99";
+		return endB.localeCompare(endA) || b.data.startDate.localeCompare(a.data.startDate) || a.data.order - b.data.order;
+	});
+
+function formatMonthYear(date: string) {
+	const [year, month] = date.split("-").map(Number);
+	const monthName = new Date(Date.UTC(year, month - 1, 1)).toLocaleString("en-US", {
+		month: "long",
+		timeZone: "UTC",
+	});
+	return `${monthName} ${year}`;
+}
+
+function formatRange(start: string, end?: string) {
+	if (end && end === start) return formatMonthYear(start);
+	const endLabel = end ? formatMonthYear(end) : "Present";
+	return `${formatMonthYear(start)} - ${endLabel}`;
+}
 ---
 
-<Layout title="Projects">
+<Layout title="Projects" wide>
 	<header class="page-header">
-		<p class="eyebrow">Projects</p>
-		<h1>Things I've built and worked on.</h1>
+		<p class="eyebrow">Featured project</p>
+	</header>
+
+	{
+		featured && featured.data.embedUrl && (
+			<FeaturedProject
+				id={featured.id}
+				title={featured.data.title}
+				summary={featured.data.summary}
+				embedUrl={featured.data.embedUrl}
+				instructions={featured.data.instructions}
+				links={featured.data.links}
+				tags={featured.data.tags}
+			/>
+		)
+	}
+
+	<header class="page-header">
+		<p class="eyebrow">Past projects</p>
 	</header>
 
 	<div class="entries">
 		{
 			entries.map((entry) => (
-				<EntryCard
+				<ProjectCard
 					id={entry.id}
-					eyebrow={`${entry.data.date} · ${entry.data.status}`}
 					title={entry.data.title}
-					subtitle={entry.data.role}
 					summary={entry.data.summary}
+					dateLabel={formatRange(entry.data.startDate, entry.data.endDate)}
+					status={entry.data.status}
 					tags={entry.data.tags}
 					links={entry.data.links}
-					pdf={entry.data.pdf}
+					gallery={entry.data.gallery}
 				/>
 			))
 		}
@@ -34,18 +73,18 @@ const entries = (await getCollection("projects")).sort(
 
 <style>
 	.page-header {
-		max-width: 34rem;
-		margin-bottom: var(--space-6);
-	}
-
-	.page-header h1 {
-		font-size: var(--step-2);
-		margin-top: var(--space-2);
+		width: 69rem;
+		max-width: 100%;
+		margin-inline: auto;
+		margin-bottom: var(--space-3);
 	}
 
 	.entries {
+		width: 69rem;
+		max-width: 100%;
+		margin-inline: auto;
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-		gap: var(--space-4);
+		grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+		gap: var(--space-5);
 	}
 </style>

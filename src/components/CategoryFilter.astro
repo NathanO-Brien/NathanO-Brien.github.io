@@ -1,0 +1,212 @@
+---
+interface Props {
+	/** Category values that actually have at least one entry, in display
+	 * order -- categories with zero entries don't get a dead filter chip. */
+	categories: string[];
+	labels: Record<string, string>;
+}
+
+const { categories, labels } = Astro.props;
+---
+
+<div class="filter" data-category-filter role="group" aria-label="Filter career entries by type">
+	<div class="filter__chips">
+		{
+			categories.map((category) => (
+				<button
+					type="button"
+					class={`filter__chip filter__chip--${category}`}
+					data-filter-chip={category}
+					aria-pressed="false"
+				>
+					<span class="filter__dot" aria-hidden="true" />
+					{labels[category]}
+				</button>
+			))
+		}
+	</div>
+	<button type="button" class="filter__clear" data-filter-clear disabled>
+		Clear
+	</button>
+</div>
+
+<style>
+	/* Pinned to the same 69rem-wide, margin-inline:auto box as the page's
+	   header (see the matching comment on .page-header in career/index.astro)
+	   so it lines up with everything else, not to a fixed pixel value.
+	   Also: position:sticky is bounded by its element's own parent box, not
+	   any distant ancestor -- this component must be a direct child of a
+	   tall container (.timeline-wrap, which spans the whole entry list) for
+	   there to be any scroll range to stick through. A parent sized to fit
+	   just this component's own height (e.g. an extra wrapper div) gives
+	   sticky nothing to stick within and it silently no-ops. */
+	.filter {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: var(--space-3);
+		width: 69rem;
+		max-width: 100%;
+		margin-inline: auto;
+		margin-bottom: var(--space-6);
+		position: sticky;
+		top: 0;
+		z-index: 5;
+		background: var(--color-bg);
+		padding-block: var(--space-3);
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.filter__chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+	}
+
+	/* Each chip's dot reuses the exact same --color-timeline-* token as its
+	   category's timeline bubble (see TimelineNode.astro) -- the repeated
+	   color+dot pairing is the only hint tying the two together; nothing
+	   here spells it out in words. */
+	.filter__chip--employment {
+		--chip-color: var(--color-timeline-employment);
+	}
+
+	.filter__chip--education {
+		--chip-color: var(--color-timeline-education);
+	}
+
+	.filter__chip--award {
+		--chip-color: var(--color-timeline-award);
+	}
+
+	.filter__chip--research {
+		--chip-color: var(--color-timeline-research);
+	}
+
+	.filter__chip--leadership {
+		--chip-color: var(--color-timeline-leadership);
+	}
+
+	.filter__chip--publications {
+		--chip-color: var(--color-timeline-publications);
+	}
+
+	.filter__chip {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: 999px;
+		padding: var(--space-1) var(--space-3);
+		cursor: pointer;
+		transition:
+			border-color 160ms var(--ease-snap),
+			background-color 160ms var(--ease-snap),
+			color 160ms var(--ease-snap);
+	}
+
+	.filter__chip:hover {
+		border-color: var(--chip-color);
+		color: var(--color-ink);
+	}
+
+	/* The active/pressed state is the other half of the color clue: a
+	   selected chip tints toward its own dot's color instead of just
+	   getting a generic "selected" treatment. */
+	.filter__chip[aria-pressed="true"] {
+		border-color: var(--chip-color);
+		background: color-mix(in srgb, var(--chip-color) 18%, var(--color-surface));
+		color: var(--color-ink);
+	}
+
+	.filter__dot {
+		width: 0.55rem;
+		height: 0.55rem;
+		border-radius: 999px;
+		flex-shrink: 0;
+		background: var(--chip-color);
+	}
+
+	/* Same reasoning as the timeline's own leadership bubble: pure white is
+	   nearly invisible against the light-mode background without a border. */
+	.filter__chip--leadership .filter__dot {
+		border: 1px solid var(--color-border);
+	}
+
+	.filter__clear {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+		background: none;
+		border: none;
+		padding: var(--space-1) var(--space-2);
+		cursor: pointer;
+		text-decoration: underline;
+		text-decoration-color: transparent;
+		transition: color 160ms var(--ease-snap), text-decoration-color 160ms var(--ease-snap);
+	}
+
+	.filter__clear:not(:disabled):hover {
+		color: var(--color-ink);
+		text-decoration-color: currentColor;
+	}
+
+	.filter__clear:disabled {
+		visibility: hidden;
+	}
+
+	@media (max-width: 860px) {
+		.filter {
+			top: auto;
+			position: static;
+		}
+	}
+</style>
+
+<script>
+	function wireCategoryFilter() {
+		const container = document.querySelector<HTMLElement>("[data-category-filter]");
+		if (!container || container.dataset.wired) return;
+		container.dataset.wired = "true";
+
+		const chips = [...container.querySelectorAll<HTMLButtonElement>("[data-filter-chip]")];
+		const clearBtn = container.querySelector<HTMLButtonElement>("[data-filter-clear]");
+		if (!clearBtn) return;
+
+		function activeCategories() {
+			return chips.filter((chip) => chip.getAttribute("aria-pressed") === "true").map((chip) => chip.dataset.filterChip);
+		}
+
+		function applyFilter() {
+			const active = activeCategories();
+			document.querySelectorAll<HTMLElement>(".timeline-row[data-category]").forEach((row) => {
+				const show = active.length === 0 || active.includes(row.dataset.category);
+				row.classList.toggle("is-filtered-out", !show);
+			});
+			clearBtn!.disabled = active.length === 0;
+		}
+
+		chips.forEach((chip) => {
+			chip.addEventListener("click", () => {
+				const pressed = chip.getAttribute("aria-pressed") === "true";
+				chip.setAttribute("aria-pressed", String(!pressed));
+				applyFilter();
+			});
+		});
+
+		clearBtn.addEventListener("click", () => {
+			chips.forEach((chip) => chip.setAttribute("aria-pressed", "false"));
+			applyFilter();
+		});
+
+		applyFilter();
+	}
+
+	wireCategoryFilter();
+	document.addEventListener("astro:page-load", wireCategoryFilter);
+</script>

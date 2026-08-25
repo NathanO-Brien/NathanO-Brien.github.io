@@ -1,0 +1,556 @@
+---
+import { getCollection, render } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+import DocPreview from "../../components/DocPreview.astro";
+
+export async function getStaticPaths() {
+	const entries = await getCollection("projects");
+	return entries.map((entry) => ({
+		params: { id: entry.id },
+		props: { entry },
+	}));
+}
+
+const { entry } = Astro.props;
+const { title, summary, details, startDate, endDate, status, embedUrl, instructions, reportPdf, documents, documentsFirst, tags, links } =
+	entry.data;
+
+const { Content } = await render(entry);
+
+function formatMonthYear(d: string) {
+	const [year, month] = d.split("-").map(Number);
+	const monthName = new Date(Date.UTC(year, month - 1, 1)).toLocaleString("en-US", {
+		month: "long",
+		timeZone: "UTC",
+	});
+	return `${monthName} ${year}`;
+}
+
+function formatRange(start: string, end?: string) {
+	if (end && end === start) return formatMonthYear(start);
+	const endLabel = end ? formatMonthYear(end) : "Present";
+	return `${formatMonthYear(start)} - ${endLabel}`;
+}
+
+function capitalize(s: string) {
+	return s.charAt(0).toUpperCase() + s.slice(1);
+}
+---
+
+<Layout title={title} wide>
+	<a class="back" href="/projects/">← All projects</a>
+
+	<header class="detail-header">
+		<p class="eyebrow">Project</p>
+		<h1>{title}</h1>
+		<p class="detail-meta">{formatRange(startDate, endDate)} · {capitalize(status)}</p>
+	</header>
+
+	{
+		embedUrl && (
+			<div class="detail-embed-wrap">
+				<iframe class="detail-embed" src={embedUrl} title={title} loading="eager" />
+			</div>
+		)
+	}
+
+	<div class="detail-body">
+		{
+			reportPdf && (
+				<div class="detail-block">
+					<p class="section-label">Final report</p>
+					<DocPreview id={`${entry.id}-report`} href={reportPdf} label="Final Report" />
+				</div>
+			)
+		}
+
+		{
+			documentsFirst && documents.length > 0 && (
+				<div class="detail-block">
+					<p class="section-label">Documents</p>
+					<div class="detail-documents">
+						{documents.map((doc) => (
+							<DocPreview id={`${entry.id}-${doc.label}`} href={doc.href} label={doc.label} />
+						))}
+					</div>
+				</div>
+			)
+		}
+
+		<div class="detail-block">
+			<p class="section-label">Project overview</p>
+			<p class="detail-text">{summary}</p>
+			{
+				tags.length > 0 && (
+					<ul class="detail-tags">
+						{tags.map((tag) => (
+							<li>{tag}</li>
+						))}
+					</ul>
+				)
+			}
+		</div>
+
+		{
+			instructions.length > 0 && (
+				<div class="detail-block">
+					<p class="section-label">How to use it</p>
+					<ol class="detail-instructions">
+						{instructions.map((step) => (
+							<li>{step}</li>
+						))}
+					</ol>
+				</div>
+			)
+		}
+
+		{
+			details && (
+				<div class="detail-block">
+					<p class="section-label">Details</p>
+					<p class="detail-text">{details}</p>
+				</div>
+			)
+		}
+
+		{
+			!documentsFirst && documents.length > 0 && (
+				<div class="detail-block">
+					<p class="section-label">Documents</p>
+					<div class="detail-documents">
+						{documents.map((doc) => (
+							<DocPreview id={`${entry.id}-${doc.label}`} href={doc.href} label={doc.label} />
+						))}
+					</div>
+				</div>
+			)
+		}
+
+		<div class="detail-block detail-prose">
+			<Content />
+		</div>
+
+		{
+			links.length > 0 && (
+				<div class="detail-links">
+					{links.map((link) => (
+						<a href={link.url} target="_blank" rel="noopener noreferrer">
+							{link.label} ↗
+						</a>
+					))}
+				</div>
+			)
+		}
+	</div>
+</Layout>
+
+<style>
+	/* Same 69rem/margin-inline:auto alignment convention as the rest of the
+	   Projects page (see the matching comment in projects/index.astro) --
+	   this route has no nav entry (reached only via a project's "Full
+	   project details" link) but still lives inside the same `wide` main,
+	   so it needs the same width constraint to line up with nav__home. */
+	.back,
+	.detail-header,
+	.detail-embed-wrap,
+	.detail-body {
+		width: 69rem;
+		max-width: 100%;
+		margin-inline: auto;
+	}
+
+	.back {
+		display: block;
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+		text-decoration: none;
+		margin-bottom: var(--space-6);
+	}
+
+	.back:hover,
+	.back:focus-visible {
+		color: var(--color-accent);
+	}
+
+	.detail-header {
+		margin-bottom: var(--space-6);
+	}
+
+	.detail-header h1 {
+		font-size: var(--step-3);
+		margin-top: var(--space-2);
+	}
+
+	.detail-meta {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+		margin-top: var(--space-2);
+	}
+
+	.detail-embed-wrap {
+		height: min(80vh, 44rem);
+		border-radius: var(--radius-lg);
+		overflow: hidden;
+		border: 1px solid var(--color-border);
+		background: var(--color-surface);
+		margin-bottom: var(--space-6);
+	}
+
+	.detail-embed {
+		width: 100%;
+		height: 100%;
+		border: none;
+		display: block;
+	}
+
+	/* Every block (Project overview, Details, the rendered prose body,
+	   instructions, links) shares one max-width so text margins line up
+	   consistently down the page -- wide enough for the prose block's
+	   embedded plots to stay legible without spilling past the 69rem
+	   page container. */
+	.detail-block {
+		max-width: 50rem;
+	}
+
+	.detail-block + .detail-block {
+		margin-top: var(--space-6);
+	}
+
+	.section-label {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-ink);
+		font-weight: 600;
+		margin-bottom: var(--space-2);
+	}
+
+	.detail-text {
+		color: var(--color-muted);
+	}
+
+	.detail-documents {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-3);
+	}
+
+	/* The entry's markdown body, rendered via <Content /> -- frontmatter
+	   fields hold structured/repeatable data, long-form narrative (the
+	   "how each filter works" / "why this scenario" kind of writing) lives
+	   here instead, which is the standard Astro content-collection split.
+	   :global() is required since these elements come from the rendered
+	   Content component, not this file's own template.
+
+	   Headings reuse .section-label's exact styling so every section
+	   header on the page (Final report, Project overview, Details, and
+	   every ## in the body) reads as the same visual language. */
+	.detail-prose :global(h2) {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		font-weight: 600;
+		color: var(--color-ink);
+		margin-top: var(--space-6);
+		margin-bottom: var(--space-2);
+	}
+
+	.detail-prose :global(h2:first-child) {
+		margin-top: 0;
+	}
+
+	.detail-prose :global(h3) {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		font-weight: 600;
+		color: var(--color-muted);
+		margin-top: var(--space-4);
+		margin-bottom: var(--space-2);
+	}
+
+	.detail-prose :global(p) {
+		color: var(--color-muted);
+		line-height: 1.65;
+		margin-bottom: var(--space-3);
+	}
+
+	.detail-prose :global(ul),
+	.detail-prose :global(ol) {
+		color: var(--color-muted);
+		line-height: 1.6;
+		padding-left: 1.3em;
+		margin-bottom: var(--space-3);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+	}
+
+	.detail-prose :global(strong) {
+		color: var(--color-ink);
+	}
+
+	.detail-prose :global(code) {
+		font-family: var(--font-mono);
+		font-size: 0.9em;
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+		padding: 0.1em 0.35em;
+	}
+
+	.detail-prose :global(pre) {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: var(--space-3);
+		margin-bottom: var(--space-4);
+		overflow-x: auto;
+	}
+
+	.detail-prose :global(pre code) {
+		background: none;
+		border: none;
+		padding: 0;
+	}
+
+	.detail-prose :global(figure) {
+		margin: var(--space-5) 0;
+	}
+
+	.detail-prose :global(img),
+	.detail-prose :global(video) {
+		display: block;
+		width: 100%;
+		height: auto;
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--color-border);
+		background: var(--color-bg);
+	}
+
+	/* Same bordered-panel treatment as img/video, sized tall enough to
+	   actually scroll through embedded third-party content (e.g. a mirrored
+	   sponsors page) rather than just peeking at the top of it. */
+	.detail-prose :global(iframe) {
+		display: block;
+		width: 100%;
+		height: 40rem;
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--color-border);
+		background: var(--color-bg);
+	}
+
+	/* Opt-in for figures whose image is a graphic/poster/portrait rather than
+	   a wide photo -- stretching a screenshot or a tall headshot to the full
+	   50rem prose column makes text illegible and portraits enormous, so
+	   these cap at a narrower, centered width instead. */
+	.detail-prose :global(figure.narrow) {
+		max-width: 20rem;
+		margin-inline: auto;
+	}
+
+	/* A milder version of `narrow` -- for photos that just need to read as
+	   less dominant on the page, not shrunk down to poster/portrait scale. */
+	.detail-prose :global(figure.medium) {
+		max-width: 32rem;
+		margin-inline: auto;
+	}
+
+	/* Two images side by side under one shared caption -- e.g. a team lineup
+	   photo paired with an individual headshot -- instead of two separate
+	   full-width figures. */
+	.detail-prose :global(.photo-pair) {
+		display: flex;
+		gap: var(--space-3);
+		height: 16rem;
+	}
+
+	.detail-prose :global(.photo-pair img) {
+		width: auto;
+		height: 100%;
+		max-width: none;
+		object-fit: cover;
+		flex: 2;
+	}
+
+	.detail-prose :global(.photo-pair img:last-child) {
+		flex: 1;
+	}
+
+	/* A small logo/badge inset over the top-right corner of the preceding
+	   photo, instead of its own oversized full-width figure. */
+	.detail-prose :global(.photo-badge) {
+		position: relative;
+	}
+
+	.detail-prose :global(.photo-badge__inset) {
+		position: absolute;
+		top: var(--space-3);
+		right: var(--space-3);
+		width: 4rem;
+		height: 4rem;
+		object-fit: contain;
+		border-radius: 50%; /* the badge artwork itself is a circular seal, not a square icon */
+		box-shadow: var(--shadow-md);
+		background: var(--color-surface);
+		padding: var(--space-1);
+	}
+
+	/* Instagram's embed page hardcodes a white background with no dark-mode
+	   support and no accessible cross-origin styling hook -- the white card
+	   itself can't be changed, so this wraps it in a fixed-dark frame (same
+	   "intentionally ignores the page's own theme" idea as the Career page's
+	   US map) so it reads as a deliberately-styled card rather than a plain
+	   white rectangle sitting on the page. */
+	.detail-prose :global(.embed-frame-dark) {
+		background: #101114;
+		padding: var(--space-4);
+		border-radius: var(--radius-lg);
+	}
+
+	.detail-prose :global(.embed-frame-dark iframe) {
+		border: none;
+	}
+
+	/* Plain prose links (e.g. a project's own website, linked inline in the
+	   body) -- global.css only sets `color: inherit` on <a>, so without this
+	   a body link is visually indistinguishable from surrounding text. */
+	.detail-prose :global(a) {
+		color: var(--color-ink);
+		text-decoration: underline;
+		text-decoration-color: var(--color-border);
+		text-underline-offset: 0.15em;
+		transition: color 160ms var(--ease-snap), text-decoration-color 160ms var(--ease-snap);
+	}
+
+	.detail-prose :global(a:hover),
+	.detail-prose :global(a:focus-visible) {
+		color: var(--color-accent);
+		text-decoration-color: var(--color-accent);
+	}
+
+	/* An inline trigger, styled identically to a plain prose link, that opens
+	   the same DocPreview dialog a document button elsewhere on the page
+	   would -- see the "sponsorship packets" mention in the body markdown,
+	   which sets data-dialog to the same id as the Sponsorship Package
+	   button above, so this doesn't create a second dialog, just a second
+	   way to open the one that already exists. Real <button>, not <a>, since
+	   DocPreview's own wiring script never calls preventDefault -- an <a>
+	   here would both open the dialog and navigate away. */
+	.detail-prose :global(.inline-doc-trigger) {
+		font: inherit;
+		background: none;
+		border: none;
+		padding: 0;
+		cursor: pointer;
+		color: var(--color-ink);
+		text-decoration: underline;
+		text-decoration-color: var(--color-border);
+		text-underline-offset: 0.15em;
+		transition: color 160ms var(--ease-snap), text-decoration-color 160ms var(--ease-snap);
+	}
+
+	.detail-prose :global(.inline-doc-trigger:hover),
+	.detail-prose :global(.inline-doc-trigger:focus-visible) {
+		color: var(--color-accent);
+		text-decoration-color: var(--color-accent);
+	}
+
+	/* A static caution chip pinned to the top-right corner of a video's
+	   figure -- e.g. the FRL hotfire clip, whose engine audio is genuinely
+	   loud. position:relative on the figure (not the video itself) is what
+	   .photo-badge already relies on for the same top-right-inset trick, so
+	   this reuses that exact positioning idea instead of inventing a new
+	   one. Fixed dark/amber colors regardless of site theme -- like
+	   .embed-frame-dark, this sits on top of unpredictable video-frame
+	   imagery rather than the page's own background, so it needs to stay
+	   legible no matter what's playing under it. pointer-events:none so it
+	   never blocks the video's own play/pause/scrub controls underneath. */
+	.detail-prose :global(.video-warning) {
+		position: relative;
+	}
+
+	.detail-prose :global(.video-warning__badge) {
+		position: absolute;
+		top: var(--space-3);
+		right: var(--space-3);
+		z-index: 1;
+		display: flex;
+		align-items: center;
+		gap: 0.35em;
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		font-weight: 600;
+		letter-spacing: 0.02em;
+		color: #ffd166;
+		background: rgba(16, 17, 20, 0.82);
+		border: 1px solid rgba(255, 209, 102, 0.4);
+		border-radius: var(--radius-sm);
+		padding: var(--space-1) var(--space-2);
+		pointer-events: none;
+	}
+
+	.detail-prose :global(figcaption) {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+		margin-top: var(--space-2);
+		line-height: 1.5;
+	}
+
+	.detail-tags {
+		list-style: none;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+		margin-top: var(--space-3);
+		padding: 0;
+	}
+
+	.detail-tags li {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: var(--space-1) var(--space-2);
+	}
+
+	.detail-instructions {
+		margin: 0;
+		padding-left: 1.3em;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+
+	.detail-instructions li {
+		color: var(--color-muted);
+		line-height: 1.5;
+	}
+
+	.detail-links {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-4);
+		margin-top: var(--space-6);
+	}
+
+	.detail-links a {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		text-decoration: none;
+		color: var(--color-accent);
+	}
+
+	.detail-links a:hover {
+		text-decoration: underline;
+	}
+
+	@media (max-width: 860px) {
+		.detail-embed-wrap {
+			height: min(70vh, 32rem);
+		}
+	}
+</style>
