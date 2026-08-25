@@ -103,4 +103,27 @@ const ogImageURL = new URL(image, Astro.site);
 		padding-block: var(--space-4);
 		min-height: 0;
 	}
+
+	/* The no-scroll "fits one viewport" treatment is a desktop-only trick --
+	   it assumes generous width to keep the hero short enough to fit a
+	   normal window height. On a phone the hero has to stack into a single
+	   narrow column (see index.astro's own mobile styles), which is
+	   naturally much taller than it is on desktop -- tall enough that
+	   forcing it into one short mobile viewport with overflow:hidden was
+	   silently clipping content off the bottom (and, in landscape, clipping
+	   the nav itself, since header had no flex-shrink protection). Below
+	   this breakpoint the page just scrolls normally like every other page
+	   on the site instead of fighting to cram everything into one screen. */
+	@media (max-width: 860px) {
+		body.fit-to-viewport {
+			height: auto;
+			display: block;
+			overflow: visible;
+		}
+
+		body.fit-to-viewport main {
+			display: block;
+			padding-block: var(--space-6);
+		}
+	}
 </style>

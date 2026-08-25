@@ -158,7 +158,13 @@ import AnimatedButton from "../components/AnimatedButton.astro";
 		object-fit: cover;
 	}
 
-	@media (max-width: 860px) {
+	/* Portrait-only: a landscape phone gets the plain desktop rules above
+	   instead (per request, "the horizontal mobile layout [should be] the
+	   same as desktop") -- .hero stays a row, nothing in this block applies.
+	   A width-only breakpoint can't tell a narrow phone from a shorter/wider
+	   landscape one, so this adds orientation to the check specifically to
+	   make that distinction. */
+	@media (max-width: 860px) and (orientation: portrait) {
 		.hero {
 			display: flex;
 			flex-direction: column;
@@ -167,28 +173,56 @@ import AnimatedButton from "../components/AnimatedButton.astro";
 			width: 100%;
 		}
 
+		/* Unwraps hero__text so its own children (eyebrow, h1, both
+		   paragraphs, actions, social) become direct flex items of .hero
+		   alongside hero__photo -- the only way to slot the photo between h1
+		   and the first paragraph via `order` below, since `order` only
+		   reorders siblings within the same flex container, and on the DOM
+		   hero__photo is hero__text's sibling, not its child. display:contents
+		   drops hero__text's own box (so its width/gap no longer do anything
+		   -- .hero's own gap above takes over that job) without removing it
+		   or its children from the document. */
 		.hero__text {
-			width: 100%;
-			gap: var(--space-3);
+			display: contents;
 		}
 
-		.hero__text h1,
-		.hero__paragraph {
+		.eyebrow {
+			order: 1;
+		}
+
+		.hero__text h1 {
+			order: 2;
 			max-width: 100%;
+			font-size: var(--step-2);
 		}
 
-		.hero__actions {
-			margin-top: var(--space-2);
-		}
-
+		/* Between the header and the first paragraph, per request -- not at
+		   the bottom of the stack, where it used to land simply because it
+		   was hero__text's last DOM sibling. */
 		.hero__photo {
+			order: 3;
 			width: 8rem;
 			height: 8rem;
 			align-self: center;
 		}
 
-		.hero__text h1 {
-			font-size: var(--step-2);
+		h1 + .hero__paragraph {
+			order: 4;
+			max-width: 100%;
+		}
+
+		h1 + .hero__paragraph + .hero__paragraph {
+			order: 5;
+			max-width: 100%;
+		}
+
+		.hero__actions {
+			order: 6;
+			margin-top: var(--space-2);
+		}
+
+		.hero__social {
+			order: 7;
 		}
 	}
 </style>

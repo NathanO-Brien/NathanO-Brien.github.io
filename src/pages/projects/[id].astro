@@ -552,5 +552,39 @@ function capitalize(s: string) {
 		.detail-embed-wrap {
 			height: min(70vh, 32rem);
 		}
+
+		/* .photo-pair's desktop treatment sets a fixed height and lets each
+		   image's own width run free (width:auto/max-width:none) so both
+		   crop to a matching height side by side -- on a narrow phone the
+		   combined natural width of two images at a shared height routinely
+		   exceeds the screen, so the pair silently overflowed off the edge
+		   (not visible without pinch-zooming out). Below this breakpoint it
+		   drops to a plain vertical stack instead -- the second photo simply
+		   sits under the first one, each at its own natural aspect ratio and
+		   the column's full width, so nothing needs to overflow. */
+		.detail-prose :global(.photo-pair) {
+			flex-direction: column;
+			height: auto;
+		}
+
+		.detail-prose :global(.photo-pair img) {
+			width: 100%;
+			height: auto;
+			max-width: 100%;
+			flex: none;
+		}
+
+		/* Instagram's own embed page (no JS SDK involved, just its plain
+		   /embed URL in an iframe) reflows taller relative to its own width
+		   as that width narrows, but nowhere near the 40rem the generic
+		   iframe rule above sizes every embed to -- at a phone-width column
+		   that left a large blank band under the actual post, which is
+		   exactly the "oversized area where comments go" complaint. This
+		   doesn't touch the generic rule (still correct for the tall,
+		   genuinely-scrollable sponsors-page embed on the same page), only
+		   this one embed's shorter, roughly-content-sized mobile height. */
+		.detail-prose :global(.embed-frame-dark iframe) {
+			height: 30rem;
+		}
 	}
 </style>

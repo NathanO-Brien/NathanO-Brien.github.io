@@ -80,10 +80,15 @@ const { items, id, label } = Astro.props;
 							</button>
 						</>
 					)}
+					{
+						/* #view=FitH on the pdf branch below: see DocPreview.astro's
+						   matching comment -- fits the PDF to viewer width on mobile
+						   instead of a desktop-scaled zoom. */
+					}
 					{item.type === "image" ? (
 						<img src={item.src} alt={item.alt ?? `${label} — image ${i + 1}`} />
 					) : (
-						<iframe src={item.src} title={item.alt ?? `Document ${i + 1}`} />
+						<iframe src={`${item.src}#view=FitH`} title={item.alt ?? `Document ${i + 1}`} />
 					)}
 				</dialog>
 			))}

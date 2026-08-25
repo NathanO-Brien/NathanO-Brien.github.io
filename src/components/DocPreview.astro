@@ -25,7 +25,17 @@ const dialogId = `doc-preview-${id}`;
 		<span>{label}</span>
 		<button type="button" class="doc-modal__close" data-close={dialogId} aria-label="Close preview">✕</button>
 	</div>
-	<iframe src={href} title={label} loading="lazy"></iframe>
+	{
+		/* #view=FitH is a standard PDF "open parameter" (same spec Adobe
+		   Acrobat/Reader use) that most browsers' built-in PDF viewers --
+		   including the Chromium/PDFium one used by Chrome and Edge on
+		   Android -- honor as an initial-view hint: fit the page to the
+		   viewer's width. Without it, mobile PDF viewers tend to open at a
+		   zoom level tuned for a desktop-sized window, forcing a pinch-zoom-
+		   out just to see the whole page. Desktop viewers already default to
+		   roughly this same fit, so this is a no-op there. */
+	}
+	<iframe src={`${href}#view=FitH`} title={label} loading="lazy"></iframe>
 </dialog>
 
 <style>
