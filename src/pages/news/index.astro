@@ -1,0 +1,351 @@
+---
+import { getCollection } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+
+const entries = (await getCollection("news")).sort((a, b) => b.data.date.localeCompare(a.data.date));
+
+function formatMonthYear(date: string) {
+	const [year, month] = date.split("-").map(Number);
+	const monthName = new Date(Date.UTC(year, month - 1, 1)).toLocaleString("en-US", {
+		month: "long",
+		timeZone: "UTC",
+	});
+	return `${monthName} ${year}`;
+}
+
+const groups: { year: string; items: typeof entries }[] = [];
+for (const entry of entries) {
+	const year = entry.data.date.slice(0, 4);
+	if (groups.length === 0 || groups[groups.length - 1].year !== year) {
+		groups.push({ year, items: [] });
+	}
+	groups[groups.length - 1].items.push(entry);
+}
+
+const allPhotos = entries.flatMap((entry) =>
+	entry.data.gallery.map((item) => ({ ...item, eventId: entry.id, eventTitle: entry.data.title }))
+);
+---
+
+<Layout title="News" wide>
+	<header class="page-header">
+		<p class="eyebrow">News</p>
+	</header>
+
+	<div class="log">
+		{
+			groups.map((group) => (
+				<>
+					<p class="year-heading">{group.year}</p>
+					{group.items.map((entry) => (
+						<button
+							type="button"
+							class="entry"
+							data-photo-group={JSON.stringify(entry.data.gallery.map((g) => g.src))}
+						>
+							<div class="entry__text">
+								<p class="entry__meta">
+									{formatMonthYear(entry.data.date)} &middot; {entry.data.location}
+								</p>
+								<p class="entry__desc">{entry.data.description}</p>
+							</div>
+							{entry.data.gallery.length > 0 && (
+								<span class="entry__thumb">
+									<img src={entry.data.gallery[0].src} alt="" loading="lazy" />
+									{entry.data.gallery.length > 1 && (
+										<span class="entry__thumb-count">+{entry.data.gallery.length - 1}</span>
+									)}
+								</span>
+							)}
+						</button>
+					))}
+				</>
+			))
+		}
+	</div>
+
+	{
+		/* Purely decorative -- every photo from every entry, laid out to look
+		   good, with no click behavior and no link back to the list above. */
+	}
+	<p class="wall-heading">Photos</p>
+	<div class="wall">
+		{
+			allPhotos.map((photo) => (
+				<div class="wall-item">
+					<img src={photo.src} alt={photo.alt ?? photo.eventTitle} loading="lazy" />
+				</div>
+			))
+		}
+	</div>
+
+	<dialog class="lightbox" id="lightbox">
+		<button type="button" class="lightbox__close" data-lightbox-close aria-label="Close">
+			&#10005;
+		</button>
+		<button type="button" class="lightbox__arrow lightbox__arrow--prev" data-lightbox-prev aria-label="Previous">
+			&#8249;
+		</button>
+		<button type="button" class="lightbox__arrow lightbox__arrow--next" data-lightbox-next aria-label="Next">
+			&#8250;
+		</button>
+		<img data-lightbox-img alt="" />
+	</dialog>
+</Layout>
+
+<style>
+	/* Same 69rem/margin-inline:auto nav-alignment convention as every other
+	   page (see the matching comment on .page-header in career/index.astro)
+	   -- the list is deliberately the full 69rem width (not a narrower
+	   reading column) so its left edge lines up with nav__home exactly like
+	   everything else on the site. */
+	.page-header,
+	.log,
+	.wall-heading,
+	.wall {
+		width: 69rem;
+		max-width: 100%;
+		margin-inline: auto;
+	}
+
+	.page-header {
+		margin-bottom: var(--space-6);
+	}
+
+	/* A clear section break, not just a small label -- big enough that
+	   scanning the page tells you what year you're in at a glance. */
+	.year-heading {
+		font-size: var(--step-2);
+		font-weight: 600;
+		color: var(--color-ink);
+		margin-top: var(--space-8);
+		margin-bottom: var(--space-3);
+	}
+
+	.year-heading:first-of-type {
+		margin-top: 0;
+	}
+
+	.entry {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-4);
+		width: 100%;
+		text-align: left;
+		font: inherit;
+		background: none;
+		border: none;
+		border-bottom: 1px solid var(--color-border);
+		padding-block: var(--space-4);
+		cursor: pointer;
+	}
+
+	.entry:hover {
+		border-bottom-color: var(--color-accent);
+	}
+
+	.entry__text {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.entry__meta {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+		margin-bottom: var(--space-1);
+	}
+
+	.entry__desc {
+		color: var(--color-ink);
+		line-height: 1.55;
+	}
+
+	.entry__thumb {
+		position: relative;
+		display: block;
+		width: 4.5rem;
+		height: 4.5rem;
+		flex-shrink: 0;
+		border-radius: var(--radius-sm);
+		overflow: hidden;
+		border: 1px solid var(--color-border);
+	}
+
+	.entry__thumb img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
+	}
+
+	.entry__thumb-count {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(10, 10, 12, 0.45);
+		color: #fff;
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+	}
+
+	.wall-heading {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin-top: var(--space-8);
+		margin-bottom: var(--space-4);
+	}
+
+	/* Purely decorative -- true masonry via CSS columns so each photo keeps
+	   its own natural aspect ratio (no crop, no letterbox background), but
+	   nothing here is clickable or tied to the list above. */
+	.wall {
+		columns: 4;
+		column-gap: var(--space-3);
+	}
+
+	.wall-item {
+		width: 100%;
+		border-radius: var(--radius-sm);
+		overflow: hidden;
+		margin-bottom: var(--space-3);
+		break-inside: avoid;
+		background: var(--color-bg);
+	}
+
+	.wall-item img {
+		width: 100%;
+		height: auto;
+		display: block;
+	}
+
+	.lightbox {
+		border: none;
+		border-radius: var(--radius-lg);
+		padding: 0;
+		width: min(90vw, 60rem);
+		max-height: 85vh;
+		margin: auto;
+		box-shadow: var(--shadow-md);
+		background: var(--color-surface);
+	}
+
+	.lightbox[open] {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.lightbox::backdrop {
+		background: rgba(10, 10, 12, 0.55);
+	}
+
+	.lightbox img {
+		display: block;
+		max-width: min(90vw, 60rem);
+		max-height: 85vh;
+		width: auto;
+		height: auto;
+		margin: auto;
+		object-fit: contain;
+	}
+
+	.lightbox__close,
+	.lightbox__arrow {
+		position: absolute;
+		border: none;
+		border-radius: 999px;
+		background: rgba(10, 10, 12, 0.55);
+		color: #fff;
+		cursor: pointer;
+		line-height: 1;
+		z-index: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.lightbox__close {
+		top: var(--space-3);
+		right: var(--space-3);
+		width: 2rem;
+		height: 2rem;
+	}
+
+	.lightbox__arrow {
+		top: 50%;
+		transform: translateY(-50%);
+		width: 2.4rem;
+		height: 2.4rem;
+		font-size: 1.3rem;
+	}
+
+	.lightbox__arrow--prev {
+		left: var(--space-3);
+	}
+
+	.lightbox__arrow--next {
+		right: var(--space-3);
+	}
+
+	@media (max-width: 860px) {
+		.wall {
+			columns: 2;
+		}
+	}
+
+	@media (max-width: 600px) {
+		.entry {
+			align-items: flex-start;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.wall {
+			columns: 1;
+		}
+	}
+</style>
+
+<script>
+	function wireNewsPage() {
+		const dialog = document.getElementById("lightbox") as HTMLDialogElement | null;
+		const img = dialog?.querySelector<HTMLImageElement>("[data-lightbox-img]");
+		if (!dialog || !img || dialog.dataset.wired) return;
+		dialog.dataset.wired = "true";
+
+		let currentGroup: string[] = [];
+		let currentIndex = 0;
+
+		function show(i: number) {
+			currentIndex = (i + currentGroup.length) % currentGroup.length;
+			img!.src = currentGroup[currentIndex];
+		}
+
+		document.querySelectorAll<HTMLButtonElement>("[data-photo-group]").forEach((entry) => {
+			entry.addEventListener("click", () => {
+				const group = JSON.parse(entry.dataset.photoGroup!) as string[];
+				if (group.length === 0) return;
+				currentGroup = group;
+				show(0);
+				dialog.showModal();
+			});
+		});
+
+		dialog.querySelector("[data-lightbox-close]")?.addEventListener("click", () => dialog.close());
+		dialog.querySelector("[data-lightbox-prev]")?.addEventListener("click", () => show(currentIndex - 1));
+		dialog.querySelector("[data-lightbox-next]")?.addEventListener("click", () => show(currentIndex + 1));
+		dialog.addEventListener("click", (e) => {
+			if (e.target === dialog) dialog.close();
+		});
+	}
+
+	wireNewsPage();
+	document.addEventListener("astro:page-load", wireNewsPage);
+</script>
