@@ -11,6 +11,16 @@ body {
 	height: 100%;
 }
 
+html {
+	/* Reserves scrollbar-gutter space on every page, whether or not that
+	   page's content actually overflows. Without this, a page that never
+	   scrolls (About, which fits one viewport) is a few pixels wider than
+	   a page that does (Career/Projects), which shifts where centered
+	   content -- including Nav, despite its own width being identical on
+	   every page -- lands relative to the viewport. */
+	scrollbar-gutter: stable;
+}
+
 body {
 	margin: 0;
 	background: var(--color-bg);

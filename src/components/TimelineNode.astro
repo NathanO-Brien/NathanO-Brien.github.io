@@ -1,6 +1,6 @@
 ---
 interface Props {
-	category: "education" | "employment" | "award";
+	category: "education" | "employment" | "award" | "research" | "leadership" | "publications";
 	dateRange: string;
 }
 
@@ -16,10 +16,15 @@ const { category, dateRange } = Astro.props;
 </div>
 
 <style>
+	/* Anchored to .timeline-row (the parent), not a grid column: hangs off
+	   the row's left edge and stretches to the row's full height via
+	   top:0;bottom:0, so it tracks whatever height the tile ends up with. */
 	.node {
-		position: relative;
-		height: 100%;
-		display: flex;
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		right: calc(100% + var(--space-6));
+		width: 9rem;
 	}
 
 	.node__line {
@@ -35,11 +40,21 @@ const { category, dateRange } = Astro.props;
 		transform: translateX(50%);
 	}
 
+	/* Anchored via absolute right:0 (not margin-left:auto on a flex child)
+	   so the bubble stays glued to .node__line regardless of how wide the
+	   date text is. A date-range string ("2025-08 — Present") is wide
+	   enough to overflow the 9rem column; margin-left:auto only pins the
+	   right edge while there's free space to consume, so it silently broke
+	   for ranges while single dates (awards) stayed fine by coincidence.
+	   Absolute positioning has no such free-space dependency: the marker's
+	   right edge is always at .node's right edge, and the date text simply
+	   grows leftward as needed without moving the bubble. */
 	.node__marker {
-		position: relative;
+		position: absolute;
 		z-index: 1;
-		margin-left: auto;
-		margin-top: var(--space-5);
+		right: 0;
+		top: 50%;
+		transform: translateY(-50%);
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
@@ -72,9 +87,23 @@ const { category, dateRange } = Astro.props;
 		background: var(--color-timeline-award);
 	}
 
+	.node__bubble--research {
+		background: var(--color-timeline-research);
+	}
+
+	.node__bubble--leadership {
+		background: var(--color-timeline-leadership);
+		border: 1px solid var(--color-border);
+	}
+
+	.node__bubble--publications {
+		background: var(--color-timeline-publications);
+	}
+
 	@media (max-width: 860px) {
 		.node {
-			height: auto;
+			position: static;
+			width: auto;
 			padding-bottom: var(--space-3);
 		}
 
@@ -83,8 +112,8 @@ const { category, dateRange } = Astro.props;
 		}
 
 		.node__marker {
-			margin-left: 0;
-			margin-top: 0;
+			position: static;
+			transform: none;
 		}
 	}
 </style>

@@ -1,0 +1,166 @@
+---
+/* Used by the Career page (src/pages/career/index.astro). State shapes come
+   from real US Census boundary data (`us-atlas`) rendered through D3's
+   standard `geoAlbersUsa()` projection (see usMapProjection.ts) -- not a
+   hand-drawn/hand-calibrated map. Marker x/y (passed in via `cities`) come
+   from that exact same projection instance, computed in the page itself, so
+   the dots and the state outlines are geometrically consistent by
+   construction. Fill is a fixed dark tone regardless of site theme -- a
+   white state-border stroke needs a dark fill to read clearly in both light
+   and dark mode, so this map intentionally doesn't follow the page's own
+   light/dark tokens. Only the states themselves carry a fill; everything
+   outside their outlines is transparent, so no surrounding box/background
+   is needed or wanted. */
+import { getStatePaths } from "./usMapProjection";
+
+interface CityMarker {
+	/** Matching key, e.g. "Gainesville, FL" -- must equal the career entry's
+	 * `location` field exactly so click-filtering can match by string. */
+	location: string;
+	label: string;
+	count: number;
+	/** Position in the map's own coordinate space -- the output of
+	 * projectLatLon() from usMapProjection.ts, not a percentage. */
+	x: number;
+	y: number;
+}
+
+interface Props {
+	cities: CityMarker[];
+}
+
+const { cities } = Astro.props;
+const statePaths = getStatePaths();
+---
+
+<div class="us-map" data-us-map>
+	<svg class="us-map__svg" viewBox="0 0 960 600" role="img" aria-label="Map of the United States with markers for places I've worked">
+		<g class="us-map__states">
+			{statePaths.map(({ abbr, d }) => (
+				<path d={d} data-state={abbr} />
+			))}
+		</g>
+		<g class="us-map__markers">
+			{
+				cities.map((c) => (
+					<g
+						class="us-map__marker"
+						data-map-city={c.location}
+						tabindex="0"
+						role="button"
+						aria-pressed="false"
+						aria-label={`${c.label} (${c.count} ${c.count === 1 ? "entry" : "entries"})`}
+					>
+						<circle cx={c.x} cy={c.y} r="11" class="us-map__dot-hit" />
+						<circle cx={c.x} cy={c.y} r="5" class="us-map__dot" />
+						<title>{c.label}</title>
+					</g>
+				))
+			}
+		</g>
+	</svg>
+</div>
+
+<style>
+	.us-map {
+		width: 100%;
+		display: flex;
+		justify-content: center;
+	}
+
+	.us-map__svg {
+		width: 100%;
+		max-width: 34rem;
+		height: auto;
+		display: block;
+	}
+
+	.us-map__states path {
+		fill: #333a4a;
+		stroke: #ffffff;
+		stroke-width: 1.1;
+		stroke-linejoin: round;
+	}
+
+	.us-map__marker {
+		cursor: pointer;
+	}
+
+	/* Locked while a type filter is active (see career/index.astro's
+	   wireCareerFilters()) -- type and location filters are mutually
+	   exclusive, so the map goes inert and dims rather than letting a click
+	   silently combine both. pointer-events:none on the group blocks the
+	   mouse; the activate() guard below blocks keyboard (Enter/Space),
+	   since a still-focusable element ignores pointer-events. The dimming
+	   itself is applied to the dot circle rather than the <g> -- CSS
+	   opacity doesn't reliably composite a group in every rendering
+	   environment, but it's solid on a leaf shape element. */
+	.us-map.is-locked .us-map__marker {
+		pointer-events: none;
+	}
+
+	.us-map.is-locked .us-map__dot {
+		opacity: 0.35;
+	}
+
+	.us-map__dot-hit {
+		fill: transparent;
+	}
+
+	/* Cyan, not the site's blue accent -- that blue is already spoken for
+	   (it's the Employment category color and the site-wide link/accent
+	   color), so reusing it here would make map markers read as "another
+	   category" rather than their own distinct thing. Cyan is unused
+	   elsewhere on the page and reads with strong contrast against the
+	   map's dark navy fill. */
+	.us-map__dot {
+		fill: #22d3ee;
+		stroke: #ffffff;
+		stroke-width: 1.5;
+		transition: r 160ms var(--ease-snap), fill 160ms var(--ease-snap), opacity 160ms var(--ease-snap);
+	}
+
+	.us-map__marker:hover .us-map__dot {
+		r: 7;
+	}
+
+	.us-map__marker[aria-pressed="true"] .us-map__dot {
+		fill: #ffffff;
+		r: 7;
+	}
+
+	.us-map__marker:focus-visible .us-map__dot {
+		outline: 2px solid #22d3ee;
+	}
+</style>
+
+<script>
+	function wireUSMap() {
+		document.querySelectorAll<SVGGElement>("[data-us-map]:not([data-wired])").forEach((map) => {
+			(map as unknown as HTMLElement).dataset.wired = "true";
+			map.querySelectorAll<SVGGElement>("[data-map-city]").forEach((marker) => {
+				const activate = () => {
+					if (map.classList.contains("is-locked")) return;
+					const alreadyActive = marker.getAttribute("aria-pressed") === "true";
+					map.querySelectorAll("[data-map-city]").forEach((m) => m.setAttribute("aria-pressed", "false"));
+					if (!alreadyActive) marker.setAttribute("aria-pressed", "true");
+					document.dispatchEvent(
+						new CustomEvent("map-city-click", {
+							detail: { location: alreadyActive ? null : marker.dataset.mapCity },
+						})
+					);
+				};
+				marker.addEventListener("click", activate);
+				marker.addEventListener("keydown", (e) => {
+					if (e.key === "Enter" || e.key === " ") {
+						e.preventDefault();
+						activate();
+					}
+				});
+			});
+		});
+	}
+
+	wireUSMap();
+	document.addEventListener("astro:page-load", wireUSMap);
+</script>

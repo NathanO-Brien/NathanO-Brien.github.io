@@ -10,15 +10,134 @@ interface Props {
 	tags?: string[];
 	links?: { label: string; url: string }[];
 	pdf?: string;
+	/** Shows a circular logo frame in the top-right corner (empty/dashed
+	 * placeholder if `logo` isn't set yet). Opt-in so pages that don't use
+	 * logos (e.g. Projects) render exactly as before. */
+	showLogo?: boolean;
+	logo?: string;
+	/** "circle" (default), "rectangle", or "square" -- some logos look bad
+	 * cropped to a circle. Only one shape renders at a time, in the same
+	 * top-right slot. */
+	logoShape?: "circle" | "rectangle" | "square";
+	/** Shown in the header of the expanded view alongside the title, e.g.
+	 * "August 2025 - Present". Only meaningful when `expandable` is set. */
+	dateRange?: string;
+	/** Makes the whole tile clickable, opening a dialog with all of the
+	 * card's info plus `highlights`. Opt-in so pages that don't want this
+	 * (e.g. Projects) render exactly as before. */
+	expandable?: boolean;
+	/** Omit (or pass []) to skip the "Details" section entirely -- used for
+	 * entries that inherently carry less info (e.g. awards/events). */
+	highlights?: string[];
+	/** When set, this and `location` render together as "Org · Location"
+	 * (instead of `subtitle`) when they fit on one line, or as two clean
+	 * lines with no dangling separator when they don't -- a script measures
+	 * the actual rendered wrap and toggles the dot accordingly. Also used
+	 * as the visible link text for the organization-website section. */
+	organization?: string;
+	location?: string;
+	organizationUrl?: string;
+	/** Shown as its own section in the expanded view (intended for education
+	 * entries). Omit to skip the section. */
+	gpa?: string;
+	/** Rendered right after `location` (same dot-separator/wrap convention
+	 * as organization/location) as "Full-time"/"Part-time" -- the word
+	 * "hours" itself never appears. Only shows if `location` is also set.
+	 * Intended for employment entries. */
+	hours?: "full-time" | "part-time";
+	/** Full DOI URL, shown as a "View Publication" link in a dedicated
+	 * section of the expanded view. Intended for publication entries. */
+	doi?: string;
 }
 
-const { id, eyebrow, title, subtitle, summary, tags = [], links = [], pdf } = Astro.props;
+const {
+	id,
+	eyebrow,
+	title,
+	subtitle,
+	summary,
+	tags = [],
+	links = [],
+	pdf,
+	showLogo = false,
+	logo,
+	logoShape = "circle",
+	dateRange,
+	expandable = false,
+	highlights = [],
+	organization,
+	location,
+	organizationUrl,
+	gpa,
+	hours,
+	doi,
+} = Astro.props;
+
+const hoursLabel = hours === "full-time" ? "Full-time" : hours === "part-time" ? "Part-time" : undefined;
+
+const dialogId = `card-modal-${id}`;
 ---
 
-<article class="card">
-	<p class="eyebrow">{eyebrow}</p>
-	<h3>{title}</h3>
-	{subtitle && <p class="card__subtitle">{subtitle}</p>}
+<article
+	class="card"
+	class:list={{ "card--expandable": expandable }}
+	data-card-dialog={expandable ? dialogId : undefined}
+	tabindex={expandable ? 0 : undefined}
+	role={expandable ? "button" : undefined}
+	aria-haspopup={expandable ? "dialog" : undefined}
+>
+	<div class="card__head">
+		<div class="card__heading">
+			<p class="eyebrow">{eyebrow}</p>
+			<h3>{title}</h3>
+			{
+				organization ? (
+					<p
+						class="card__subtitle"
+						data-org-loc={location ? "" : undefined}
+						data-loc-hours={location && hoursLabel ? "" : undefined}
+					>
+						<span class="card__subtitle-org">
+							{organization}
+							{location && (
+								<span class="card__subtitle-dot card__subtitle-dot--org" aria-hidden="true">
+									{" "}
+									·
+								</span>
+							)}
+						</span>
+						{location && (
+							<span class="card__subtitle-loc">
+								{location}
+								{hoursLabel && (
+									<span class="card__subtitle-dot card__subtitle-dot--loc" aria-hidden="true">
+										{" "}
+										·
+									</span>
+								)}
+							</span>
+						)}
+						{hoursLabel && <span class="card__subtitle-hours">{hoursLabel}</span>}
+					</p>
+				) : (
+					subtitle && <p class="card__subtitle">{subtitle}</p>
+				)
+			}
+		</div>
+		{
+			showLogo && (
+				<div
+					class="card__logo"
+					class:list={{
+						"card__logo--rectangle": logoShape === "rectangle",
+						"card__logo--square": logoShape === "square",
+					}}
+				>
+					{logo && <img src={logo} alt={`${title} logo`} />}
+				</div>
+			)
+		}
+	</div>
 	<p class="card__summary">{summary}</p>
 
 	{
@@ -45,6 +164,128 @@ const { id, eyebrow, title, subtitle, summary, tags = [], links = [], pdf } = As
 	}
 </article>
 
+{
+	expandable && (
+		<dialog id={dialogId} class="card-modal">
+			<div class="card-modal__bar">
+				<span>{eyebrow}</span>
+				<button type="button" class="card-modal__close" data-close={dialogId} aria-label="Close">
+					✕
+				</button>
+			</div>
+			<div class="card-modal__body">
+				<div class="card__head">
+					<div class="card__heading">
+						<p class="eyebrow">{eyebrow}</p>
+						<h2>{title}</h2>
+						{
+							organization ? (
+								<p
+									class="card__subtitle"
+									data-org-loc={location ? "" : undefined}
+									data-loc-hours={location && hoursLabel ? "" : undefined}
+								>
+									<span class="card__subtitle-org">
+										{organization}
+										{location && (
+											<span class="card__subtitle-dot card__subtitle-dot--org" aria-hidden="true">
+												{" "}
+												·
+											</span>
+										)}
+									</span>
+									{location && (
+										<span class="card__subtitle-loc">
+											{location}
+											{hoursLabel && (
+												<span class="card__subtitle-dot card__subtitle-dot--loc" aria-hidden="true">
+													{" "}
+													·
+												</span>
+											)}
+										</span>
+									)}
+									{hoursLabel && <span class="card__subtitle-hours">{hoursLabel}</span>}
+								</p>
+							) : (
+								subtitle && <p class="card__subtitle">{subtitle}</p>
+							)
+						}
+						{dateRange && <p class="card-modal__date">{dateRange}</p>}
+					</div>
+					{showLogo && (
+						<div
+							class="card__logo card__logo--lg"
+							class:list={{
+								"card__logo--rectangle": logoShape === "rectangle",
+								"card__logo--square": logoShape === "square",
+							}}
+						>
+							{logo && <img src={logo} alt={`${title} logo`} />}
+						</div>
+					)}
+				</div>
+
+				<p class="card__summary">{summary}</p>
+
+				{tags.length > 0 && (
+					<ul class="card__tags">
+						{tags.map((tag) => (
+							<li class="tag">{tag}</li>
+						))}
+					</ul>
+				)}
+
+				{organizationUrl && (
+					<div class="card-modal__org">
+						<p class="eyebrow">Organization</p>
+						<a class="card__link" href={organizationUrl} target="_blank" rel="noopener noreferrer">
+							{organization ?? "Visit website"} ↗
+						</a>
+					</div>
+				)}
+
+				{gpa && (
+					<div class="card-modal__gpa">
+						<p class="eyebrow">GPA</p>
+						<p>{gpa}</p>
+					</div>
+				)}
+
+				{doi && (
+					<div class="card-modal__org">
+						<p class="eyebrow">DOI</p>
+						<a class="card__link" href={doi} target="_blank" rel="noopener noreferrer">
+							View Publication ↗
+						</a>
+					</div>
+				)}
+
+				{highlights.length > 0 && (
+					<div class="card-modal__highlights">
+						<p class="eyebrow">Details</p>
+						<ul>
+							{highlights.map((item) => (
+								<li>{item}</li>
+							))}
+						</ul>
+					</div>
+				)}
+
+				{links.length > 0 && (
+					<div class="card__actions">
+						{links.map((link) => (
+							<a class="card__link" href={link.url} target="_blank" rel="noopener noreferrer">
+								{link.label} ↗
+							</a>
+						))}
+					</div>
+				)}
+			</div>
+		</dialog>
+	)
+}
+
 <style>
 	.card {
 		padding: var(--space-5);
@@ -54,11 +295,109 @@ const { id, eyebrow, title, subtitle, summary, tags = [], links = [], pdf } = As
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
-		transition: border-color 160ms var(--ease-snap), transform 160ms var(--ease-snap);
+		transition: border-color 160ms var(--ease-snap), transform 160ms var(--ease-snap),
+			box-shadow 160ms var(--ease-snap);
 	}
 
 	.card:hover {
 		border-color: var(--color-accent);
+	}
+
+	.card--expandable {
+		cursor: pointer;
+	}
+
+	.card--expandable:hover,
+	.card--expandable:focus-visible {
+		transform: translateY(-2px);
+		box-shadow: var(--shadow-md);
+	}
+
+	.card--expandable:focus-visible {
+		outline: 2px solid var(--color-accent);
+		outline-offset: 2px;
+	}
+
+	.card__head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: var(--space-4);
+	}
+
+	.card__heading {
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+	}
+
+	.card__logo {
+		flex-shrink: 0;
+		width: 4rem;
+		height: 4rem;
+		border-radius: 50%;
+		overflow: hidden;
+		/* 2px instead of 1px: a 1px ring around a small circle lands on a
+		   fractional device pixel on most non-integer display scales
+		   (125%/150%, common on Windows), which is what read as "grainy" --
+		   2px rounds more reliably to a crisp, fully-covered ring. */
+		border: 2px dashed var(--color-border);
+		background: var(--color-bg);
+	}
+
+	/* A logo image always gets a solid white outline + white fill,
+	   regardless of shape -- most of these logos have white or transparent
+	   backgrounds, and a white frame keeps them legible against the card's
+	   dark background. The white fill matters even though the image covers
+	   the whole box: clipping a rectangular image to a rounded corner (or a
+	   circle) leaves a hairline sub-pixel gap between the image edge and the
+	   border curve, which read as a dark sliver of the card's own
+	   background bleeding through. Filling the box white first means that
+	   gap shows white instead, blending into the border and most logos'
+	   own white backgrounds. The empty placeholder (no logo yet) stays a
+	   dashed --color-border outline on the theme background instead, since
+	   there's nothing to frame yet. */
+	.card__logo:has(img) {
+		border-style: solid;
+		border-color: #ffffff;
+		background: #ffffff;
+	}
+
+	/* Same vertical size as the circle, a bit wider -- for logos that get
+	   cropped badly by a circular frame. Never combined with another shape;
+	   all three occupy the same top-right slot, one at a time. */
+	.card__logo--rectangle {
+		width: 5.5rem;
+		border-radius: var(--radius-sm);
+	}
+
+	.card__logo--lg.card__logo--rectangle {
+		width: 7.5rem;
+	}
+
+	/* Same box size as the circle, just squared-off corners instead of
+	   fully round -- for icon-style logos that lose corner detail cropped
+	   to a circle but don't need a rectangle's extra width. */
+	.card__logo--square {
+		border-radius: var(--radius-sm);
+	}
+
+	.card__logo img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		/* Forces the image onto its own GPU-composited layer, which avoids a
+		   known Chromium quirk where CSS-downscaled images inside an
+		   overflow:hidden + border-radius container render through a lower-
+		   quality (grainy/noisy) scaling path instead of smooth resampling. */
+		transform: translateZ(0);
+		backface-visibility: hidden;
+	}
+
+	.card__logo--lg {
+		width: 5.5rem;
+		height: 5.5rem;
 	}
 
 	.card h3 {
@@ -69,6 +408,52 @@ const { id, eyebrow, title, subtitle, summary, tags = [], links = [], pdf } = As
 		color: var(--color-muted);
 		font-size: var(--step--1);
 		font-family: var(--font-mono);
+		/* Organization, location, and (optionally) hours are flex items on one
+		   row that wraps when they don't all fit -- avoids the old plain-text
+		   behavior where a long organization name could wrap mid-word with
+		   the separator/location dangling awkwardly on the overflow line.
+		   When a pair of adjacent items DOES wrap onto separate lines, a
+		   script below hides the dot between that specific pair (added via
+		   .is-org-loc-wrapped / .is-loc-hours-wrapped) so the overflow case
+		   reads as clean lines with no orphaned separator, while short
+		   combos still share one line. */
+		display: flex;
+		flex-wrap: wrap;
+		column-gap: 0.35em;
+		row-gap: 0.15em;
+	}
+
+	.card__subtitle-org,
+	.card__subtitle-loc,
+	.card__subtitle-hours {
+		/* Not nowrap: a flex-wrap container already moves items to separate
+		   lines as whole items whenever they don't all fit -- character-level
+		   wrapping inside a span only ever kicks in once that span's own
+		   content is wider than the entire container, which used to push
+		   text past the tile/page edge instead of wrapping at very narrow
+		   viewports. min-width:0 removes the flex min-width:auto floor that
+		   caused the overflow; overflow-wrap lets that case break like
+		   normal text instead. */
+		min-width: 0;
+		overflow-wrap: break-word;
+	}
+
+	/* visibility:hidden, not display:none: each dot must keep occupying its
+	   layout space even when hidden. If hiding it actually removed its
+	   width, that would sometimes let the now-narrower combo newly fit on
+	   one line -- which the wrap check would then see and un-hide the dot,
+	   which no longer fits, which hides it again: a feedback loop that
+	   lands on a stable but wrong answer. Keeping each dot's width reserved
+	   regardless of its visibility means hiding it can never change whether
+	   things fit, so there's nothing to oscillate. The org/loc pair and the
+	   loc/hours pair are tracked independently, since one pair can wrap
+	   while the other still shares a line. */
+	.card__subtitle.is-org-loc-wrapped .card__subtitle-dot--org {
+		visibility: hidden;
+	}
+
+	.card__subtitle.is-loc-hours-wrapped .card__subtitle-dot--loc {
+		visibility: hidden;
 	}
 
 	.card__summary {
@@ -102,4 +487,208 @@ const { id, eyebrow, title, subtitle, summary, tags = [], links = [], pdf } = As
 	.card__link:hover {
 		text-decoration: underline;
 	}
+
+	/* Mirrors DocPreview/PhotoGallery's modal styling for visual consistency. */
+	.card-modal {
+		border: none;
+		border-radius: var(--radius-lg);
+		padding: 0;
+		width: min(90vw, 40rem);
+		max-height: 85vh;
+		box-shadow: var(--shadow-md);
+		background: var(--color-surface);
+		color: var(--color-ink);
+		/* <dialog> has a browser-default overflow:auto, which -- on top of
+		   .card-modal__body's own overflow-y:auto below -- produced two
+		   nested scrollbars for tall content. Only the body should scroll. */
+		overflow: hidden;
+	}
+
+	.card-modal::backdrop {
+		background: rgba(10, 10, 12, 0.55);
+	}
+
+	.card-modal__bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: var(--space-3) var(--space-4);
+		border-bottom: 1px solid var(--color-border);
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+	}
+
+	.card-modal__close {
+		border: none;
+		background: transparent;
+		color: var(--color-muted);
+		font-size: 1rem;
+		cursor: pointer;
+		line-height: 1;
+		padding: 0.25em;
+	}
+
+	.card-modal__close:hover {
+		color: var(--color-ink);
+	}
+
+	.card-modal__body {
+		padding: var(--space-5);
+		overflow-y: auto;
+		max-height: calc(85vh - 2.75rem);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+		/* Keep wheel/touch scrolling functional, just hide the visible
+		   track/handle -- not a click-and-drag scrollbar. */
+		scrollbar-width: none; /* Firefox */
+		-ms-overflow-style: none; /* legacy Edge/IE */
+	}
+
+	.card-modal__body::-webkit-scrollbar {
+		display: none; /* Chrome/Safari/Edge (Chromium) */
+	}
+
+	.card-modal__body h2 {
+		font-size: var(--step-2);
+	}
+
+	.card-modal__date {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+	}
+
+	.card-modal__org .card__link {
+		display: inline-block;
+		margin-top: var(--space-2);
+	}
+
+	.card-modal__gpa p:last-child {
+		margin-top: var(--space-2);
+		color: var(--color-ink);
+	}
+
+	.card-modal__highlights ul {
+		margin: var(--space-2) 0 0;
+		padding-left: 1.1em;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+
+	.card-modal__highlights li {
+		color: var(--color-ink);
+	}
 </style>
+
+{
+	/* Unconditional, matching DocPreview/PhotoGallery's convention: Astro
+	   hoists/bundles <script> tags at compile time regardless of runtime
+	   conditionals, so wrapping this in `{expandable && ...}` wouldn't
+	   actually skip it -- it would just be confusing. The runtime query
+	   below naturally no-ops when no `[data-card-dialog]` elements exist. */
+}
+<script>
+	function wireUpCardExpand() {
+		document
+			.querySelectorAll<HTMLElement>("[data-card-dialog]:not([data-wired])")
+			.forEach((card) => {
+				const dialog = document.getElementById(
+					card.dataset.cardDialog!
+				) as HTMLDialogElement | null;
+				if (!dialog) return;
+				card.dataset.wired = "true";
+
+				const open = () => dialog.showModal();
+
+				card.addEventListener("click", (event) => {
+					// Let nested links/buttons (external links, the doc-preview
+					// trigger) handle their own click instead of also opening
+					// this card's modal.
+					if ((event.target as HTMLElement).closest("a, button")) return;
+					open();
+				});
+
+				card.addEventListener("keydown", (event) => {
+					if (event.key !== "Enter" && event.key !== " ") return;
+					if ((event.target as HTMLElement).closest("a, button")) return;
+					event.preventDefault();
+					open();
+				});
+
+				dialog.querySelector("[data-close]")?.addEventListener("click", () => dialog.close());
+				dialog.addEventListener("click", (event) => {
+					if (event.target === dialog) dialog.close();
+				});
+			});
+	}
+
+	wireUpCardExpand();
+	document.addEventListener("astro:page-load", wireUpCardExpand);
+
+	// Toggles each "· " separator off when its pair of adjacent items (org/
+	// location, or location/hours) wraps onto two lines (CSS alone can't
+	// detect a wrap; only a resulting layout can be measured). The two
+	// pairs are tracked independently since one can wrap while the other
+	// still shares a line. Keeps a dot when its pair both fit on one line.
+	function updateWrapState(el: HTMLElement) {
+		const org = el.querySelector<HTMLElement>(".card__subtitle-org");
+		const loc = el.querySelector<HTMLElement>(".card__subtitle-loc");
+		const hours = el.querySelector<HTMLElement>(".card__subtitle-hours");
+		if (org && loc) {
+			el.classList.toggle("is-org-loc-wrapped", loc.offsetTop > org.offsetTop);
+		}
+		if (loc && hours) {
+			el.classList.toggle("is-loc-hours-wrapped", hours.offsetTop > loc.offsetTop);
+		}
+	}
+
+	function updateAllWrapState() {
+		document
+			.querySelectorAll<HTMLElement>(".card__subtitle[data-org-loc], .card__subtitle[data-loc-hours]")
+			.forEach(updateWrapState);
+	}
+
+	updateAllWrapState();
+	document.addEventListener("astro:page-load", updateAllWrapState);
+
+	// A plain window "resize" listener isn't enough: this page is tall
+	// enough that images/logos finishing loading below the fold can make
+	// the page's scrollbar appear *after* the initial measurement, shaving
+	// a few px off each card's available content width without the
+	// viewport itself ever resizing -- exactly enough to flip a borderline
+	// entry from "fits on one line" to "wraps" with no resize event to
+	// catch it. ResizeObserver catches that. Scoping it to each .card's own
+	// width (rather than <body>) matters: .card's width is fixed by CSS
+	// (.timeline-row's width), so it can never change just because this
+	// same callback toggled the dot's display -- observing something our
+	// own mutation could affect (like <body>, whose height changes when a
+	// line collapses) risks a feedback loop where the check re-fires mid-
+	// settle and can land on a stale answer in either direction.
+	if ("ResizeObserver" in window) {
+		const observer = new ResizeObserver((entries) => {
+			entries.forEach((entry) => {
+				entry.target
+					.querySelectorAll<HTMLElement>(".card__subtitle[data-org-loc], .card__subtitle[data-loc-hours]")
+					.forEach(updateWrapState);
+			});
+		});
+		document
+			.querySelectorAll<HTMLElement>(".card__subtitle[data-org-loc], .card__subtitle[data-loc-hours]")
+			.forEach((el) => {
+				const card = el.closest<HTMLElement>(".card");
+				if (card) observer.observe(card);
+			});
+	} else {
+		window.addEventListener("resize", updateAllWrapState);
+	}
+
+	// Belt-and-suspenders: a couple of delayed re-checks catch anything that
+	// settles late (slow-loading images/logos, the dev-only Astro toolbar
+	// injecting itself and nudging page height, etc.) without depending on
+	// that thing having triggered a .card-width-changing ResizeObserver
+	// callback in the first place.
+	setTimeout(updateAllWrapState, 500);
+	setTimeout(updateAllWrapState, 1500);
+</script>

@@ -14,6 +14,9 @@
 	--color-timeline-employment: var(--color-accent);
 	--color-timeline-education: #1f9d6d;
 	--color-timeline-award: #b8862c;
+	--color-timeline-research: #c9433a;
+	--color-timeline-leadership: #ffffff;
+	--color-timeline-publications: #8b5cf6;
 
 	--font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 	--font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Consolas", monospace;
@@ -58,6 +61,8 @@
 		--color-accent-ink: #0b0c0f;
 		--color-timeline-education: #3ddb96;
 		--color-timeline-award: #e3b04f;
+		--color-timeline-research: #f0665a;
+		--color-timeline-publications: #a78bfa;
 		--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
 		--shadow-md: 0 6px 24px rgba(0, 0, 0, 0.4);
 	}

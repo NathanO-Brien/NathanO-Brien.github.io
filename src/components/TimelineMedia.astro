@@ -14,10 +14,10 @@ const hasContent = Boolean(pdf) || gallery.length > 0;
 ---
 
 {
-	/* Always render this wrapper, even with nothing inside -- it's a grid
-	   item alongside the timeline node and card, so skipping it entirely
-	   for media-less entries would shift every later entry's node/card/
-	   media out of column alignment. */
+	/* Always render this wrapper, even with nothing inside -- it's the
+	   positioned anchor hanging off .timeline-row's right edge (see below),
+	   so it needs to exist per-entry regardless of whether that entry has
+	   any media to show. */
 }
 <div class="media" data-drop-target={hasContent ? "" : undefined}>
 	{gallery.length > 0 && <PhotoGallery images={gallery} id={id} label={title} />}
@@ -25,10 +25,18 @@ const hasContent = Boolean(pdf) || gallery.length > 0;
 </div>
 
 <style>
-	/* "Bead drops into its slot" entrance: starts above and slightly
-	   shrunk, then overshoots past its resting scale/position and
-	   settles back, like a piece landing in a Connect Four column. */
+	/* Anchored to .timeline-row (the parent), hanging off its right edge,
+	   the same way TimelineNode hangs off the left edge -- both track
+	   whatever position the tile ends up centered at, rather than living in
+	   an independent grid column. Also the "bead drops into its slot"
+	   entrance: starts above and slightly shrunk, then overshoots past its
+	   resting scale/position and settles back, like a piece landing in a
+	   Connect Four column. */
 	.media {
+		position: absolute;
+		top: 0;
+		left: calc(100% + var(--space-6));
+		width: 18rem;
 		opacity: 0;
 		transform: translateY(-14px) scale(0.96);
 		transition:
@@ -44,6 +52,14 @@ const hasContent = Boolean(pdf) || gallery.length > 0;
 	@media (prefers-reduced-motion: reduce) {
 		.media {
 			transition: none;
+		}
+	}
+
+	@media (max-width: 860px) {
+		.media {
+			position: static;
+			width: 100%;
+			margin-top: var(--space-3);
 		}
 	}
 </style>

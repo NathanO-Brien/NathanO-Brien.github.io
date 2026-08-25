@@ -1,103 +1,537 @@
 ---
+// "Control panel + map" layout: a sticky left panel (intro copy, a vertical
+// filter checklist, and a US location map) + a plain entry list on the
+// right (no bubble/line rail -- the panel + intro copy carry "this is a
+// browsable timeline" instead). Replaced the original bubble-and-line
+// spine design.
 import { getCollection } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
 import EntryCard from "../../components/EntryCard.astro";
-import TimelineNode from "../../components/TimelineNode.astro";
-import TimelineMedia from "../../components/TimelineMedia.astro";
+import USLocationMap from "../../components/USLocationMap.astro";
+import { projectLatLon } from "../../components/usMapProjection";
 
 const entries = (await getCollection("career")).sort((a, b) => {
-	const dateA = a.data.endDate ?? "9999-99";
-	const dateB = b.data.endDate ?? "9999-99";
-	return dateB.localeCompare(dateA) || a.data.order - b.data.order;
+	const startCompare = b.data.startDate.localeCompare(a.data.startDate);
+	if (startCompare !== 0) return startCompare;
+	const endA = a.data.endDate ?? "9999-99";
+	const endB = b.data.endDate ?? "9999-99";
+	return endB.localeCompare(endA) || a.data.order - b.data.order;
 });
 
+function formatMonthYear(date: string) {
+	const [year, month] = date.split("-").map(Number);
+	const monthName = new Date(Date.UTC(year, month - 1, 1)).toLocaleString("en-US", {
+		month: "long",
+		timeZone: "UTC",
+	});
+	return `${monthName} ${year}`;
+}
+
 function formatRange(start: string, end?: string) {
-	if (end && end === start) return start; // single-date events (awards/conferences) show one date, not a redundant range
-	return `${start} — ${end ?? "present"}`;
+	if (end && end === start) return formatMonthYear(start).replace(" ", ", ");
+	const endLabel = end ? formatMonthYear(end) : "Present";
+	return `${formatMonthYear(start)} - ${endLabel}`;
 }
 
 const categoryLabels: Record<string, string> = {
 	employment: "Employment",
 	education: "Education",
-	award: "Award / Event",
+	award: "Award",
+	research: "Research",
+	leadership: "Leadership",
+	publications: "Publications",
 };
+
+const presentCategories = Object.keys(categoryLabels).filter((category) =>
+	entries.some((entry) => entry.data.category === category)
+);
+
+// Map markers come directly from each entry's own `lat`/`lon` frontmatter
+// (see content.config.ts), run through the real geoAlbersUsa() projection
+// in usMapProjection.ts -- real coordinates in, real position out, no
+// hand-calibrated guessing. Entries missing either field just don't get a
+// marker. Multiple entries at the exact same lat/lon collapse into a
+// single marker (grouped by that coordinate pair) the same way multiple
+// jobs in one city always have.
+const locationGroups = new Map<string, { lat: number; lon: number; label: string; count: number }>();
+for (const entry of entries) {
+	if (entry.data.lat == null || entry.data.lon == null) continue;
+	const key = `${entry.data.lat},${entry.data.lon}`;
+	const existing = locationGroups.get(key);
+	if (existing) {
+		existing.count++;
+	} else {
+		locationGroups.set(key, { lat: entry.data.lat, lon: entry.data.lon, label: entry.data.location ?? key, count: 1 });
+	}
+}
+const cityMarkers = [...locationGroups.entries()]
+	.map(([key, g]) => {
+		const projected = projectLatLon(g.lat, g.lon);
+		if (!projected) return null; // outside what geoAlbersUsa() can place (not actually expected for real US coordinates)
+		return { location: key, label: g.label, count: g.count, ...projected };
+	})
+	.filter((m): m is { location: string; label: string; count: number; x: number; y: number } => m !== null);
 ---
 
 <Layout title="Career" wide>
-	<header class="page-header">
-		<p class="eyebrow">Career progression</p>
-		<h1>Where the path has gone, and where it's headed.</h1>
-	</header>
+	<div class="page-frame">
+		<header class="page-header">
+			<p class="eyebrow">Career progression</p>
+			<button type="button" class="page-header__clear" data-filter-clear disabled>
+				Clear all filters
+			</button>
+		</header>
 
-	<div class="timeline-wrap">
-		<div class="timeline">
+		<div class="layout">
+		<aside class="panel">
+			<p class="panel__intro">Click any entry for the full story, or filter by type or location. Scroll for more.</p>
+
+			<div class="panel__section">
+				<p class="panel__section-label">Filter by type</p>
+				<ul class="panel__filters" data-filter-list>
+					{
+						presentCategories.map((category) => (
+							<li>
+								<button
+									type="button"
+									class={`filter-row filter-row--${category}`}
+									data-filter-chip={category}
+									aria-pressed="false"
+								>
+									<span class="filter-row__dot" aria-hidden="true" />
+									<span class="filter-row__label">{categoryLabels[category]}</span>
+									<span class="filter-row__count">{entries.filter((e) => e.data.category === category).length}</span>
+								</button>
+							</li>
+						))
+					}
+				</ul>
+			</div>
+
+			<div class="panel__section">
+				<p class="panel__section-label">Filter by location</p>
+				<USLocationMap cities={cityMarkers} />
+			</div>
+		</aside>
+
+		<div class="list" data-entry-list>
 			{
-				entries.map((entry) => (
-					<>
-						<TimelineNode
-							category={entry.data.category}
-							dateRange={formatRange(entry.data.startDate, entry.data.endDate)}
-						/>
-						<div class="timeline-card">
+				entries.map((entry) => {
+					const dateRange = formatRange(entry.data.startDate, entry.data.endDate);
+					const geoKey = entry.data.lat != null && entry.data.lon != null ? `${entry.data.lat},${entry.data.lon}` : "";
+					return (
+						<div class="entry" data-category={entry.data.category} data-location={geoKey}>
+							<p class="entry__meta">
+								<span class={`entry__dot entry__dot--${entry.data.category}`} aria-hidden="true" />
+								{dateRange}
+							</p>
 							<EntryCard
 								id={entry.id}
 								eyebrow={categoryLabels[entry.data.category]}
 								title={entry.data.title}
-								subtitle={[entry.data.organization, entry.data.location].filter(Boolean).join(" · ")}
 								summary={entry.data.summary}
 								tags={entry.data.tags}
 								links={entry.data.links}
+								showLogo
+								logo={entry.data.logo}
+								logoShape={entry.data.logoShape}
+								dateRange={dateRange}
+								expandable
+								highlights={entry.data.highlights}
+								subtitle={entry.data.journal}
+								organization={entry.data.organization}
+								location={entry.data.location}
+								organizationUrl={entry.data.organizationUrl}
+								gpa={entry.data.gpa}
+								hours={entry.data.hours}
+								doi={entry.data.doi}
 							/>
 						</div>
-						<TimelineMedia id={entry.id} title={entry.data.title} pdf={entry.data.pdf} gallery={entry.data.gallery} />
-					</>
-				))
+					);
+				})
 			}
 		</div>
+	</div>
 	</div>
 </Layout>
 
 <style>
-	.page-header {
-		max-width: 34rem;
-		margin-bottom: var(--space-6);
-	}
-
-	.page-header h1 {
-		font-size: var(--step-2);
-		margin-top: var(--space-2);
-	}
-
-	/* .timeline's grid-template-columns are all fixed/bounded (no 1fr), so
-	   as a flex child of .timeline-wrap it sizes to that fixed total width
-	   (9rem + 30rem + 18rem + 2 gaps) instead of stretching to fill the
-	   page -- that's what lets justify-content:center actually center it,
-	   rather than centering an item that's already full-width. */
-	.timeline-wrap {
+	.page-frame {
+		height: calc(100vh - var(--nav-height) - 6rem);
+		min-height: 26rem;
 		display: flex;
-		justify-content: center;
+		flex-direction: column;
 	}
 
-	.timeline {
+	.page-header {
+		width: 69rem;
+		max-width: 100%;
+		margin-inline: auto;
+		margin-bottom: var(--space-4);
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-4);
+	}
+
+	.layout {
+		width: 69rem;
+		max-width: 100%;
+		margin-inline: auto;
 		display: grid;
-		grid-template-columns: 9rem minmax(0, 30rem) minmax(0, 18rem);
-		column-gap: var(--space-6);
-		row-gap: 0;
-		align-items: stretch;
+		grid-template-columns: 18rem 1fr;
+		gap: var(--space-6);
+		flex: 1;
+		min-height: 0;
 	}
 
-	.timeline-card {
-		margin-bottom: var(--space-6);
+	.panel {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-5);
+		/* Never scrolls, ever -- if its content is taller than the available
+		   height it gets silently clipped instead of showing a scrollbar.
+		   Keep panel content short enough to actually fit (see panel__intro). */
+		overflow: hidden;
+		min-height: 0;
+	}
+
+	.panel__intro {
+		color: var(--color-muted);
+		line-height: 1.55;
+	}
+
+	.panel__section-label {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-ink);
+		font-weight: 600;
+		margin-bottom: var(--space-2);
+	}
+
+	.panel__filters {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+	}
+
+	.filter-row {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+		background: none;
+		border: 1px solid transparent;
+		border-radius: var(--radius-sm);
+		padding: var(--space-2);
+		cursor: pointer;
+		text-align: left;
+		transition: border-color 160ms var(--ease-snap), background-color 160ms var(--ease-snap), color 160ms var(--ease-snap);
+	}
+
+	.filter-row:hover {
+		border-color: var(--color-border);
+		color: var(--color-ink);
+	}
+
+	.filter-row[aria-pressed="true"] {
+		border-color: var(--chip-color);
+		background: color-mix(in srgb, var(--chip-color) 14%, var(--color-surface));
+		color: var(--color-ink);
+	}
+
+	.filter-row--employment {
+		--chip-color: var(--color-timeline-employment);
+	}
+	.filter-row--education {
+		--chip-color: var(--color-timeline-education);
+	}
+	.filter-row--award {
+		--chip-color: var(--color-timeline-award);
+	}
+	.filter-row--research {
+		--chip-color: var(--color-timeline-research);
+	}
+	.filter-row--leadership {
+		--chip-color: var(--color-timeline-leadership);
+	}
+	.filter-row--publications {
+		--chip-color: var(--color-timeline-publications);
+	}
+
+	.filter-row__dot {
+		width: 0.55rem;
+		height: 0.55rem;
+		border-radius: 999px;
+		background: var(--chip-color);
+		flex-shrink: 0;
+	}
+
+	/* box-shadow, not border: a border is drawn *inside* the element's own
+	   box (eating into the same width/height every other dot uses for its
+	   full-bleed fill color), so the white circle itself rendered visibly
+	   smaller than every other category's dot. box-shadow paints outside
+	   the box instead, adding the same edge-definition against a light
+	   background without shrinking the dot's own visible size at all. */
+	.filter-row--leadership .filter-row__dot {
+		box-shadow: 0 0 0 1px var(--color-border);
+	}
+
+	.filter-row__label {
+		flex: 1;
+	}
+
+	.filter-row__count {
+		color: var(--color-muted);
+		font-size: 10px;
+	}
+
+	/* Locked while a location filter is active -- see wireCareerFilters()
+	   below. pointer-events:none is belt-and-suspenders (native :disabled
+	   already blocks clicks); it's here mainly so hover styles don't flash
+	   on an unusable control. */
+	.filter-row:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+		pointer-events: none;
+	}
+
+	.page-header__clear {
+		flex-shrink: 0;
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+		background: none;
+		border: none;
+		cursor: pointer;
+		text-decoration: underline;
+		text-decoration-color: transparent;
+		transition: color 160ms var(--ease-snap), text-decoration-color 160ms var(--ease-snap);
+	}
+
+	.page-header__clear:not(:disabled):hover {
+		color: var(--color-ink);
+		text-decoration-color: currentColor;
+	}
+
+	.page-header__clear:disabled {
+		visibility: hidden;
+	}
+
+	.list {
+		display: flex;
+		flex-direction: column;
+		/* Spacing between entries lives here, not as padding-top on .entry --
+		   flex gap only ever appears between elements that are actually
+		   rendered (display:none siblings contribute none), so whichever
+		   entry ends up topmost after filtering sits flush with the top of
+		   the list, same as the panel beside it. A per-entry :first-child
+		   padding-top:0 override looks equivalent at first glance but isn't:
+		   :first-child always matches the DOM's literal first entry, so if
+		   filtering hides that specific one, the new topmost *visible* entry
+		   still carries its own top padding and the list visibly drops down
+		   by that amount -- which was exactly this bug. */
+		gap: var(--space-5);
+		overflow-y: auto;
+		min-height: 0;
+		/* "locked" while a tile's modal is open -- see the script below.
+		   Scroll stays functional (wheel/touch/keyboard); only the visible
+		   track/handle is hidden -- same convention EntryCard's own expanded-
+		   view modal already uses (.card-modal__body in EntryCard.astro). */
+		scrollbar-width: none; /* Firefox */
+		-ms-overflow-style: none; /* legacy Edge/IE */
+	}
+
+	.list::-webkit-scrollbar {
+		display: none; /* Chrome/Safari/Edge (Chromium) */
+	}
+
+	.list.scroll-locked {
+		overflow: hidden;
+	}
+
+	.entry {
+		padding-bottom: var(--space-4);
+		padding-inline: var(--space-1);
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.entry.is-filtered-out {
+		display: none;
+	}
+
+	.entry__meta {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		color: var(--color-muted);
+		margin-bottom: var(--space-2);
+	}
+
+	.entry__dot {
+		width: 0.5rem;
+		height: 0.5rem;
+		border-radius: 999px;
+		flex-shrink: 0;
+	}
+
+	.entry__dot--employment {
+		background: var(--color-timeline-employment);
+	}
+	.entry__dot--education {
+		background: var(--color-timeline-education);
+	}
+	.entry__dot--award {
+		background: var(--color-timeline-award);
+	}
+	.entry__dot--research {
+		background: var(--color-timeline-research);
+	}
+	.entry__dot--leadership {
+		background: var(--color-timeline-leadership);
+		box-shadow: 0 0 0 1px var(--color-border);
+	}
+	.entry__dot--publications {
+		background: var(--color-timeline-publications);
 	}
 
 	@media (max-width: 860px) {
-		.timeline {
-			grid-template-columns: 1fr;
-			row-gap: var(--space-3);
+		/* The fixed-height/internal-scroll scheme is a desktop-only trick --
+		   below this breakpoint the page just scrolls normally like every
+		   other page on the site, panel stacked above the list. */
+		.page-frame {
+			height: auto;
+			min-height: 0;
+			display: block;
 		}
-
-		.timeline-card {
-			margin-bottom: 0;
+		.layout {
+			grid-template-columns: 1fr;
+			display: block;
+		}
+		.panel {
+			overflow-y: visible;
+		}
+		.list {
+			overflow-y: visible;
 		}
 	}
 </style>
+
+<style is:global>
+	/* Belt-and-suspenders: .page-frame above is sized to make page-level
+	   scroll unnecessary in the first place, but keep nav genuinely sticky
+	   too in case that sizing is ever off (a very short viewport, dev-tools
+	   chrome, etc.) so it can never scroll away regardless. Scoped to this
+	   page's own stylesheet only -- doesn't affect any other route.
+
+	   :not(.page-header) matters: this page has a SECOND <header> tag of
+	   its own (.page-header, the "Career progression" eyebrow row) that
+	   this bare-tag selector would otherwise also catch. That second sticky
+	   z-index:50 box sat directly across the middle of the Projects nav
+	   dropdown's panel and, being later in DOM order, won the stacking tie
+	   -- so hovering that ~20px band (nearly full page width, positioned
+	   right above the scrolling entry list) silently ate the mouse and
+	   closed the dropdown, which read as "the tiles take over." .page-header
+	   was never meant to be sticky itself -- excluding it here is the fix,
+	   not a loss of any real behavior. */
+	header:not(.page-header) {
+		position: sticky;
+		top: 0;
+		z-index: 50;
+		background: var(--color-bg);
+	}
+
+	/* Set on <body> when a tile's expanded-detail dialog is open (see
+	   wireScrollLock() below) -- the background (in this design, that's
+	   .list, not the whole page) shouldn't scroll while a modal sits on top
+	   of it. */
+	body.scroll-locked {
+		overflow: hidden;
+	}
+</style>
+
+<script>
+	function wireCareerFilters() {
+		const root = document.querySelector<HTMLElement>("[data-entry-list]");
+		if (!root || root.dataset.wired) return;
+		root.dataset.wired = "true";
+
+		const chips = [...document.querySelectorAll<HTMLButtonElement>("[data-filter-chip]")];
+		const clearBtn = document.querySelector<HTMLButtonElement>("[data-filter-clear]");
+		const rows = [...document.querySelectorAll<HTMLElement>(".entry[data-category]")];
+		const mapEl = document.querySelector<HTMLElement>("[data-us-map]");
+		let activeLocation: string | null = null;
+
+		function apply() {
+			const activeCategories = chips.filter((c) => c.getAttribute("aria-pressed") === "true").map((c) => c.dataset.filterChip);
+			rows.forEach((row) => {
+				const matchesCategory = activeCategories.length === 0 || activeCategories.includes(row.dataset.category!);
+				const matchesLocation = !activeLocation || row.dataset.location === activeLocation;
+				row.classList.toggle("is-filtered-out", !(matchesCategory && matchesLocation));
+			});
+			if (clearBtn) clearBtn.disabled = activeCategories.length === 0 && !activeLocation;
+
+			// Type and location filters are mutually exclusive -- combining
+			// them silently over-narrows results with no obvious explanation,
+			// so whichever mode is active locks out the other's controls.
+			// Switching between multiple categories (or between multiple map
+			// markers) within the same mode stays unrestricted; only
+			// crossing modes is blocked, and only Clear resets both.
+			const categoryModeActive = activeCategories.length > 0;
+			const locationModeActive = activeLocation !== null;
+			chips.forEach((c) => (c.disabled = locationModeActive));
+			mapEl?.classList.toggle("is-locked", categoryModeActive);
+		}
+
+		chips.forEach((chip) => {
+			chip.addEventListener("click", () => {
+				chip.setAttribute("aria-pressed", String(chip.getAttribute("aria-pressed") !== "true"));
+				apply();
+			});
+		});
+
+		document.addEventListener("map-city-click", ((e: CustomEvent<{ location: string | null }>) => {
+			activeLocation = e.detail.location;
+			apply();
+		}) as EventListener);
+
+		clearBtn?.addEventListener("click", () => {
+			chips.forEach((c) => c.setAttribute("aria-pressed", "false"));
+			document.querySelectorAll("[data-map-city]").forEach((m) => m.setAttribute("aria-pressed", "false"));
+			activeLocation = null;
+			apply();
+		});
+	}
+
+	function wireScrollLock() {
+		const list = document.querySelector<HTMLElement>("[data-entry-list]");
+		const dialogs = [...document.querySelectorAll<HTMLDialogElement>(".card-modal")];
+		if (!list || dialogs.length === 0 || list.dataset.scrollLockWired) return;
+		list.dataset.scrollLockWired = "true";
+
+		const sync = () => {
+			const anyOpen = dialogs.some((d) => d.open);
+			document.body.classList.toggle("scroll-locked", anyOpen);
+			list.classList.toggle("scroll-locked", anyOpen);
+		};
+
+		const observer = new MutationObserver(sync);
+		dialogs.forEach((d) => observer.observe(d, { attributes: true, attributeFilter: ["open"] }));
+	}
+
+	wireCareerFilters();
+	wireScrollLock();
+	document.addEventListener("astro:page-load", () => {
+		wireCareerFilters();
+		wireScrollLock();
+	});
+</script>
