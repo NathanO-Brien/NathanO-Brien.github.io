@@ -136,13 +136,23 @@ const sortedProjects = (await getCollection("projects"))
 		align-items: center;
 		text-decoration: none;
 		color: var(--color-muted);
-		padding-block: var(--space-1);
+		/* The explicit "0" here matters more than it looks -- button
+		   elements carry their own default horizontal padding that <a>
+		   elements never had, so Resume (the one <button> here) used to sit
+		   with visibly more room around its label than every <a> beside it. */
+		padding: var(--space-1) 0;
 		border-bottom: 2px solid transparent;
+		/* Matches border-bottom in width/color (both transparent) purely so
+		   the box is vertically symmetric -- a bottom-only border makes the
+		   link's own box taller below its text than above, which shifts the
+		   text a fraction of a pixel above nav__home's when .nav centers the
+		   two boxes against each other. Never shown: the hover rule below
+		   only ever colors border-bottom, so this stays invisible always. */
+		border-top: 2px solid transparent;
 		transition: color 160ms var(--ease-snap), border-color 160ms var(--ease-snap);
 		font: inherit;
 		background: none;
 		border-inline: none;
-		border-top: none;
 		cursor: pointer;
 	}
 
@@ -150,7 +160,7 @@ const sortedProjects = (await getCollection("projects"))
 	.nav__links a[aria-current="page"],
 	.nav__links button:hover {
 		color: var(--color-ink);
-		border-color: var(--color-accent);
+		border-bottom-color: var(--color-accent);
 	}
 
 	@media (max-width: 480px) {
