@@ -42,6 +42,7 @@ const allPhotos = entries.flatMap((entry) =>
 							type="button"
 							class="entry"
 							data-photo-group={JSON.stringify(entry.data.gallery.map((g) => g.src))}
+							data-url={entry.data.url ?? ""}
 						>
 							<div class="entry__text">
 								<p class="entry__meta">
@@ -90,6 +91,9 @@ const allPhotos = entries.flatMap((entry) =>
 			&#8250;
 		</button>
 		<img data-lightbox-img alt="" />
+		<a data-lightbox-link class="lightbox__link" href="#" target="_blank" rel="noopener noreferrer" hidden>
+			Visit website ↗
+		</a>
 	</dialog>
 </Layout>
 
@@ -238,6 +242,7 @@ const allPhotos = entries.flatMap((entry) =>
 
 	.lightbox[open] {
 		display: flex;
+		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 	}
@@ -249,11 +254,29 @@ const allPhotos = entries.flatMap((entry) =>
 	.lightbox img {
 		display: block;
 		max-width: min(90vw, 60rem);
-		max-height: 85vh;
+		/* Trimmed from a flat 85vh so there's always room left under the photo
+		   for .lightbox__link, which only some entries render. */
+		max-height: 80vh;
 		width: auto;
 		height: auto;
 		margin: auto;
 		object-fit: contain;
+	}
+
+	/* Hidden by default via the `hidden` attribute on entries with no `url`
+	   -- see the click handler below. Padding (not a flex gap) so it carries
+	   its own breathing room above (from the photo) and below (from the
+	   dialog's own zero padding) without affecting the image-only case. */
+	.lightbox__link {
+		font-family: var(--font-mono);
+		font-size: var(--step--1);
+		text-decoration: none;
+		color: var(--color-accent);
+		padding: var(--space-3) 0;
+	}
+
+	.lightbox__link:hover {
+		text-decoration: underline;
 	}
 
 	.lightbox__close,
@@ -317,7 +340,8 @@ const allPhotos = entries.flatMap((entry) =>
 	function wireNewsPage() {
 		const dialog = document.getElementById("lightbox") as HTMLDialogElement | null;
 		const img = dialog?.querySelector<HTMLImageElement>("[data-lightbox-img]");
-		if (!dialog || !img || dialog.dataset.wired) return;
+		const link = dialog?.querySelector<HTMLAnchorElement>("[data-lightbox-link]");
+		if (!dialog || !img || !link || dialog.dataset.wired) return;
 		dialog.dataset.wired = "true";
 
 		let currentGroup: string[] = [];
@@ -334,6 +358,12 @@ const allPhotos = entries.flatMap((entry) =>
 				if (group.length === 0) return;
 				currentGroup = group;
 				show(0);
+				if (entry.dataset.url) {
+					link.href = entry.dataset.url;
+					link.hidden = false;
+				} else {
+					link.hidden = true;
+				}
 				dialog.showModal();
 			});
 		});
