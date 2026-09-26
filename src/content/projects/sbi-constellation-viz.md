@@ -6,8 +6,7 @@ role: "Technical co-lead"
 startDate: "2025-11"
 status: "ongoing"
 featured: true
-embedUrl: "https://espl.ae.gatech.edu/research/models/sbi/"
-embedBlocked: true
+embedUrl: "https://thomasgroberts.github.io/sbi-constellation-viz/"
 tags: ["Space Security", "Constellation Optimization", "Orbital Mechanics", "MILP", "Python"]
 links: []
 instructions:
