@@ -1,7 +1,7 @@
 ---
 title: "Satellite 2024"
 date: "2024-03-01"
-location: "Washington, DC"
+location: "Washington D.C."
 description: "I attended Satellite 2024 and presented to former members of Congress as a representative of Florida Rocket Lab."
 url: https://eventsdc.com/events/satellite-2024
 gallery:

@@ -1,7 +1,7 @@
 ---
 title: "Inside the Dome"
 date: "2026-05-01"
-location: "Washington, DC"
+location: "Washington D.C."
 description: "I attended Payload / Tectonic's Inside the Dome event and connected with others in the SBI community."
 url: https://events.payloadspace.com/inside-the-dome
 gallery:
