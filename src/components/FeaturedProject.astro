@@ -4,21 +4,33 @@ interface Props {
 	title: string;
 	summary: string;
 	embedUrl: string;
+	embedBlocked?: boolean;
 	instructions?: string[];
 	links?: { label: string; url: string }[];
 	tags?: string[];
 }
 
-const { id, title, summary, embedUrl, instructions = [], links = [], tags = [] } = Astro.props;
+const { id, title, summary, embedUrl, embedBlocked = false, instructions = [], links = [], tags = [] } = Astro.props;
 ---
 
 <section class="featured">
 	<div class="featured__embed-wrap">
-		<iframe class="featured__embed" src={embedUrl} title={title} loading="eager"></iframe>
+		{embedBlocked ? (
+			<div class="featured__embed-blocked">
+				<p>This tool can't be embedded here -- its host blocks being shown in a frame.</p>
+				<a class="featured__detail-btn" href={embedUrl} target="_blank" rel="noopener noreferrer">
+					Open the tool in a new tab →
+				</a>
+			</div>
+		) : (
+			<iframe class="featured__embed" src={embedUrl} title={title} loading="eager"></iframe>
+		)}
 	</div>
-	<a class="featured__open" href={embedUrl} target="_blank" rel="noopener noreferrer">
-		Open in a new tab ↗
-	</a>
+	{!embedBlocked && (
+		<a class="featured__open" href={embedUrl} target="_blank" rel="noopener noreferrer">
+			Open in a new tab ↗
+		</a>
+	)}
 
 	<div class="featured__info">
 		<h2>{title}</h2>
@@ -93,6 +105,18 @@ const { id, title, summary, embedUrl, instructions = [], links = [], tags = [] }
 		height: 100%;
 		border: none;
 		display: block;
+	}
+
+	.featured__embed-blocked {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-4);
+		padding: var(--space-6);
+		text-align: center;
+		color: var(--color-muted);
 	}
 
 	.featured__open {

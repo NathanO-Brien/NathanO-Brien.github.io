@@ -6,7 +6,7 @@ description: "My graduate research was featured by the Ivan Allen College of Lib
 url: https://iac.gatech.edu/featured-news/09/engineering-space-policy-golden-dome
 gallery:
   - type: "image"
-    src: "/images/news/ESPL_logo_white.png"
+    src: "/images/news/ESPL_logo_white.jpg"
     alt: "Lab Banner"
 order: 2
 ---

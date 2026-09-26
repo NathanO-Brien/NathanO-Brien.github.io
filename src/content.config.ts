@@ -62,6 +62,7 @@ const projects = defineCollection({
 		documentsFirst: z.boolean().default(false), // renders the `documents` buttons right after the header (same position as `reportPdf`) instead of their normal later spot after Details -- defaults to false so every existing entry is unaffected; set true only when a project's documents are the headline thing to lead with
 		featured: z.boolean().default(false), // renders via <FeaturedProject> at the top of the page instead of in the grid -- exactly one entry should set this
 		embedUrl: z.string().optional(), // external URL iframed full-width in the featured section; only meaningful when featured is true
+		embedBlocked: z.boolean().default(false), // set true when embedUrl's host sends X-Frame-Options/CSP that refuses to be framed (check with `curl -sI <url>`) -- shows a placeholder card with an "Open in a new tab" button instead of a dead iframe, on both the featured section and this entry's own detail page
 		instructions: z.array(z.string()).default([]), // short ordered "how to use it" steps, rendered as a numbered list under the featured embed
 		order: z.number().default(0),
 	}),

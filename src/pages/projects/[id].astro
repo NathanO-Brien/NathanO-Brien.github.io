@@ -12,8 +12,22 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
-const { title, summary, details, startDate, endDate, status, embedUrl, instructions, reportPdf, documents, documentsFirst, tags, links } =
-	entry.data;
+const {
+	title,
+	summary,
+	details,
+	startDate,
+	endDate,
+	status,
+	embedUrl,
+	embedBlocked,
+	instructions,
+	reportPdf,
+	documents,
+	documentsFirst,
+	tags,
+	links,
+} = entry.data;
 
 const { Content } = await render(entry);
 
@@ -49,7 +63,16 @@ function capitalize(s: string) {
 	{
 		embedUrl && (
 			<div class="detail-embed-wrap">
-				<iframe class="detail-embed" src={embedUrl} title={title} loading="eager" />
+				{embedBlocked ? (
+					<div class="detail-embed-blocked">
+						<p>This tool can't be embedded here -- its host blocks being shown in a frame.</p>
+						<a class="detail-embed-blocked-btn" href={embedUrl} target="_blank" rel="noopener noreferrer">
+							Open the tool in a new tab →
+						</a>
+					</div>
+				) : (
+					<iframe class="detail-embed" src={embedUrl} title={title} loading="eager" />
+				)}
 			</div>
 		)
 	}
@@ -203,6 +226,40 @@ function capitalize(s: string) {
 		height: 100%;
 		border: none;
 		display: block;
+	}
+
+	.detail-embed-blocked {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-4);
+		padding: var(--space-6);
+		text-align: center;
+		color: var(--color-muted);
+	}
+
+	/* Same visual language as FeaturedProject's own fallback button. */
+	.detail-embed-blocked-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5em;
+		padding: 0.65em 1.15em;
+		border-radius: var(--radius-sm);
+		font-size: var(--step--1);
+		font-family: var(--font-mono);
+		text-decoration: none;
+		border: 1px solid var(--color-border);
+		color: var(--color-ink);
+		background: transparent;
+		transition: border-color 180ms var(--ease-snap), transform 180ms var(--ease-snap);
+	}
+
+	.detail-embed-blocked-btn:hover,
+	.detail-embed-blocked-btn:focus-visible {
+		border-color: var(--color-accent);
+		transform: translateY(-2px);
 	}
 
 	/* Every block (Project overview, Details, the rendered prose body,

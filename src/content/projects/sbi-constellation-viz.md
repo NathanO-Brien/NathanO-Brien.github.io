@@ -7,6 +7,7 @@ startDate: "2025-11"
 status: "ongoing"
 featured: true
 embedUrl: "https://espl.ae.gatech.edu/research/models/sbi/"
+embedBlocked: true
 tags: ["Space Security", "Constellation Optimization", "Orbital Mechanics", "MILP", "Python"]
 links: []
 instructions:
