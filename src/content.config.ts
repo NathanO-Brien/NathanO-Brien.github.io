@@ -75,7 +75,7 @@ const news = defineCollection({
 		location: z.string(),
 		description: z.string(), // 1-2 sentences, shown in the list next to date/location
 		gallery: z.array(galleryItemSchema).default([]), // same shape as Projects' gallery -- rendered via the same ProjectGallery component
-		url: z.string().optional(), // link to the event/article's own page -- shown as a small link below the gallery photos once this entry is clicked open
+		url: z.string().optional(), // link to the event/article's own page -- when set, the entry's title/description text becomes a hyperlink to it (with a hover cue); the gallery is unaffected and stays reachable only via the thumbnail
 		order: z.number().default(0), // lower sorts first within a tie (e.g. same placeholder date)
 	}),
 });

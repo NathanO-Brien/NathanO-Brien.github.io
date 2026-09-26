@@ -37,29 +37,40 @@ const allPhotos = entries.flatMap((entry) =>
 			groups.map((group) => (
 				<>
 					<p class="year-heading">{group.year}</p>
-					{group.items.map((entry) => (
-						<button
-							type="button"
-							class="entry"
-							data-photo-group={JSON.stringify(entry.data.gallery.map((g) => g.src))}
-							data-url={entry.data.url ?? ""}
-						>
-							<div class="entry__text">
+					{group.items.map((entry) => {
+						const meta = (
+							<>
 								<p class="entry__meta">
 									{formatMonthYear(entry.data.date)} &middot; {entry.data.location}
 								</p>
 								<p class="entry__desc">{entry.data.description}</p>
+							</>
+						);
+						return (
+							<div class="entry">
+								{entry.data.url ? (
+									<a class="entry__text is-link" href={entry.data.url} target="_blank" rel="noopener noreferrer">
+										{meta}
+									</a>
+								) : (
+									<div class="entry__text">{meta}</div>
+								)}
+								{entry.data.gallery.length > 0 && (
+									<button
+										type="button"
+										class="entry__thumb"
+										data-photo-group={JSON.stringify(entry.data.gallery.map((g) => g.src))}
+										aria-label={`View photos for ${entry.data.title}`}
+									>
+										<img src={entry.data.gallery[0].src} alt="" loading="lazy" />
+										{entry.data.gallery.length > 1 && (
+											<span class="entry__thumb-count">+{entry.data.gallery.length - 1}</span>
+										)}
+									</button>
+								)}
 							</div>
-							{entry.data.gallery.length > 0 && (
-								<span class="entry__thumb">
-									<img src={entry.data.gallery[0].src} alt="" loading="lazy" />
-									{entry.data.gallery.length > 1 && (
-										<span class="entry__thumb-count">+{entry.data.gallery.length - 1}</span>
-									)}
-								</span>
-							)}
-						</button>
-					))}
+						);
+					})}
 				</>
 			))
 		}
@@ -91,9 +102,6 @@ const allPhotos = entries.flatMap((entry) =>
 			&#8250;
 		</button>
 		<img data-lightbox-img alt="" />
-		<a data-lightbox-link class="lightbox__link" href="#" target="_blank" rel="noopener noreferrer" hidden>
-			Visit website ↗
-		</a>
 	</dialog>
 </Layout>
 
@@ -136,22 +144,24 @@ const allPhotos = entries.flatMap((entry) =>
 		justify-content: space-between;
 		gap: var(--space-4);
 		width: 100%;
-		text-align: left;
-		font: inherit;
-		background: none;
-		border: none;
 		border-bottom: 1px solid var(--color-border);
 		padding-block: var(--space-4);
-		cursor: pointer;
 	}
 
-	.entry:hover {
+	/* The row's own divider lights up on hover, but only when the text is
+	   actually a link (`.is-link`, set when the entry has a `url`) -- a
+	   plain, non-link `.entry__text` never triggers this, so hovering a
+	   dateless/URL-less entry gives no false "this is clickable" cue. */
+	.entry:has(.entry__text.is-link:hover) {
 		border-bottom-color: var(--color-accent);
 	}
 
 	.entry__text {
+		display: block;
 		flex: 1;
 		min-width: 0;
+		color: inherit;
+		text-decoration: none;
 	}
 
 	.entry__meta {
@@ -175,6 +185,10 @@ const allPhotos = entries.flatMap((entry) =>
 		border-radius: var(--radius-sm);
 		overflow: hidden;
 		border: 1px solid var(--color-border);
+		padding: 0;
+		background: none;
+		font: inherit;
+		cursor: pointer;
 	}
 
 	.entry__thumb img {
@@ -242,7 +256,6 @@ const allPhotos = entries.flatMap((entry) =>
 
 	.lightbox[open] {
 		display: flex;
-		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 	}
@@ -254,29 +267,11 @@ const allPhotos = entries.flatMap((entry) =>
 	.lightbox img {
 		display: block;
 		max-width: min(90vw, 60rem);
-		/* Trimmed from a flat 85vh so there's always room left under the photo
-		   for .lightbox__link, which only some entries render. */
-		max-height: 80vh;
+		max-height: 85vh;
 		width: auto;
 		height: auto;
 		margin: auto;
 		object-fit: contain;
-	}
-
-	/* Hidden by default via the `hidden` attribute on entries with no `url`
-	   -- see the click handler below. Padding (not a flex gap) so it carries
-	   its own breathing room above (from the photo) and below (from the
-	   dialog's own zero padding) without affecting the image-only case. */
-	.lightbox__link {
-		font-family: var(--font-mono);
-		font-size: var(--step--1);
-		text-decoration: none;
-		color: var(--color-accent);
-		padding: var(--space-3) 0;
-	}
-
-	.lightbox__link:hover {
-		text-decoration: underline;
 	}
 
 	.lightbox__close,
@@ -340,8 +335,7 @@ const allPhotos = entries.flatMap((entry) =>
 	function wireNewsPage() {
 		const dialog = document.getElementById("lightbox") as HTMLDialogElement | null;
 		const img = dialog?.querySelector<HTMLImageElement>("[data-lightbox-img]");
-		const link = dialog?.querySelector<HTMLAnchorElement>("[data-lightbox-link]");
-		if (!dialog || !img || !link || dialog.dataset.wired) return;
+		if (!dialog || !img || dialog.dataset.wired) return;
 		dialog.dataset.wired = "true";
 
 		let currentGroup: string[] = [];
@@ -358,12 +352,6 @@ const allPhotos = entries.flatMap((entry) =>
 				if (group.length === 0) return;
 				currentGroup = group;
 				show(0);
-				if (entry.dataset.url) {
-					link.href = entry.dataset.url;
-					link.hidden = false;
-				} else {
-					link.hidden = true;
-				}
 				dialog.showModal();
 			});
 		});
