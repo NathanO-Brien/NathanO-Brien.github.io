@@ -8,5 +8,6 @@ gallery:
   - type: "image"
     src: "/images/logos/GT_logo.png"
     alt: "GT Logo"
+    hideFromWall: true
 order: 2
 ---

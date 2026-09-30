@@ -23,7 +23,9 @@ for (const entry of entries) {
 }
 
 const allPhotos = entries.flatMap((entry) =>
-	entry.data.gallery.map((item) => ({ ...item, eventId: entry.id, eventTitle: entry.data.title }))
+	entry.data.gallery
+		.filter((item) => !item.hideFromWall)
+		.map((item) => ({ ...item, eventId: entry.id, eventTitle: entry.data.title }))
 );
 ---
 

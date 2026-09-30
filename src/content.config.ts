@@ -38,6 +38,7 @@ const galleryItemSchema = z.object({
 	type: z.enum(["image", "pdf"]),
 	src: z.string(), // path under /public
 	alt: z.string().optional(), // alt text (images) or a short label (pdf slides); falls back to the project title
+	hideFromWall: z.boolean().default(false), // only meaningful for News entries -- excludes this one item from the decorative "Photos" wall at the bottom of /news/ (e.g. a logo that looks bad scaled up large) while it still shows normally in this entry's own gallery/thumbnail
 });
 
 const projects = defineCollection({
